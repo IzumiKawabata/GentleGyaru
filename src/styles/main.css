@@ -45,14 +45,14 @@ body {
   justify-content: center;
 }
 
-/* ゲームエリア: 9:16 (縦持ち16:9) で中央に閉じ込める。
- * 横に広げても aspect-ratio で枠内に収まり、外は白 paper、境界は黒シャドウで表現。
- * チャット / 選択肢などはすべて .app 内に閉じるので幅は変わらない。 */
+/* ゲームエリア: 高さは常に 100dvh フィット、幅は最大 9:16 比率まで。
+ * 横長画面 → width = 100dvh*9/16（中央配置、左右に paper 余白）
+ * 縦長画面（9:16より縦長）→ width = 100vw（縦比に収まる）
+ * 高さは常にフル、横幅だけが画面に応じて伸縮。 */
 .app {
   position: relative;
+  height: 100dvh;
   width: min(100vw, calc(100dvh * 9 / 16));
-  height: min(100dvh, calc(100vw * 16 / 9));
-  aspect-ratio: 9 / 16;
   overflow: hidden;
   background: var(--paper);
   box-shadow: 0 4px 36px rgba(0, 0, 0, 0.22);
@@ -187,6 +187,8 @@ body {
 
 .choice-group[data-spent="true"] {
   pointer-events: none;
+  /* vanish した要素分の gap が残らないように gap を消す → 残った1つが右端に詰まる */
+  gap: 0;
 }
 
 /* 選択肢ボタン（白薄背景・ミニマル） */
@@ -237,11 +239,13 @@ body {
   color: var(--accent-text);
 }
 
-/* 選ばれなかった選択肢は折りたたんで消える */
+/* 選ばれなかった選択肢は折りたたんで消える（width も完全に潰して右端詰め） */
 .choice-bubble--vanish {
   opacity: 0;
   max-height: 0;
   max-width: 0;
+  min-width: 0;
+  flex: 0 0 0;
   padding: 0;
   margin: 0;
   border-width: 0;
