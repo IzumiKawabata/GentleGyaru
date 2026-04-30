@@ -15,7 +15,7 @@
   --ink-soft: rgba(26, 26, 26, 0.55);
   --paper: #fafafa;
   --paper-soft: #f0f0f0;
-  --hairline: rgba(26, 26, 26, 0.10);
+  --hairline: rgba(26, 26, 26, 0.08);
 }
 
 * {
@@ -120,14 +120,14 @@ html, body {
   overflow: hidden;
 }
 
-/* チャットバブル（白半透明 + 黒文字、ミニマル） */
+/* チャットバブル（白薄半透明 + 黒文字、ミニマル） */
 .chat-bubble {
-  max-width: 78%;
-  padding: 0.65em 1em;
-  border-radius: 1.1em;
-  font-size: 0.95rem;
+  max-width: 76%;
+  padding: 0.5em 0.9em;
+  border-radius: 1em;
+  font-size: 0.82rem;
   line-height: 1.55;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   opacity: 0;
   transform: translateY(8px);
   animation: bubble-in 0.32s ease-out forwards;
@@ -139,18 +139,18 @@ html, body {
 
 .chat-bubble--char {
   align-self: flex-start;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.5);
   border: 1px solid var(--hairline);
-  border-bottom-left-radius: 0.3em;
+  border-bottom-left-radius: 0.25em;
 }
 
 .chat-bubble--player {
   align-self: flex-end;
-  background: var(--accent);
+  background: rgba(169, 200, 230, 0.42);
   color: var(--accent-text);
-  border-bottom-right-radius: 0.3em;
+  border-bottom-right-radius: 0.25em;
   font-weight: 500;
-  border: 1px solid var(--accent-border);
+  border: 1px solid rgba(169, 200, 230, 0.65);
 }
 
 @keyframes bubble-in {
@@ -179,17 +179,17 @@ html, body {
   pointer-events: none;
 }
 
-/* 選択肢ボタン（白背景・ミニマル） */
+/* 選択肢ボタン（白薄背景・ミニマル） */
 .choice-bubble {
   display: flex;
   align-items: center;
-  gap: 0.55em;
-  padding: 0.65em 1.1em;
+  gap: 0.5em;
+  padding: 0.5em 1em;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.62);
   color: var(--ink);
   border: 1px solid var(--hairline);
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   line-height: 1.4;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -199,7 +199,7 @@ html, body {
               max-height 0.45s ease, padding 0.45s ease,
               margin 0.45s ease, border-width 0.45s ease;
   text-align: left;
-  box-shadow: 0 1px 4px rgba(26, 26, 26, 0.06);
+  box-shadow: 0 1px 3px rgba(26, 26, 26, 0.04);
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
   max-height: 4em;
@@ -257,7 +257,7 @@ html, body {
 }
 
 .choice-group--actions .choice-bubble {
-  padding: 0.6em 1.4em;
+  padding: 0.5em 1.3em;
 }
 
 /* === Love gauge（左上、ミニマル白系） === */
@@ -266,18 +266,18 @@ html, body {
   top: 0.7em;
   left: 0.7em;
   display: flex;
-  gap: 0.18em;
+  gap: 0.15em;
   z-index: 25;
-  padding: 0.4em 0.7em;
+  padding: 0.32em 0.6em;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(10px) saturate(140%);
   -webkit-backdrop-filter: blur(10px) saturate(140%);
   border: 1px solid var(--hairline);
   pointer-events: none;
-  font-size: 0.95rem;
+  font-size: 0.78rem;
   line-height: 1;
-  box-shadow: 0 1px 4px rgba(26, 26, 26, 0.05);
+  box-shadow: 0 1px 3px rgba(26, 26, 26, 0.04);
 }
 
 .love-gauge__heart {
