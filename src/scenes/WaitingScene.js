@@ -86,6 +86,8 @@ export class WaitingScene {
   show({ afterFinish = false } = {}) {
     if (!this.root) return;
     this.root.hidden = false;
+    // 次フレームで data-shown を立てて 1s フェードイン
+    requestAnimationFrame(() => { this.root.dataset.shown = 'true'; });
     this._renderStage();
     this.bubbles.clear();
     this._transitioning = false;
@@ -109,7 +111,10 @@ export class WaitingScene {
   }
 
   hide() {
-    if (this.root) this.root.hidden = true;
+    if (this.root) {
+      this.root.dataset.shown = 'false';
+      this.root.hidden = true;
+    }
     this._cancelGreetTimers();
   }
 

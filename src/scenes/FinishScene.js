@@ -86,6 +86,7 @@ export class FinishScene {
   show({ menuIndex = 0, gain = 1, keepCount = 0 } = {}) {
     if (!this.root) return;
     this.root.hidden = false;
+    requestAnimationFrame(() => { this.root.dataset.shown = 'true'; });
     this._currentGain = gain;
     this._currentKeepCount = keepCount;
     this._renderStage(menuIndex);
@@ -107,7 +108,10 @@ export class FinishScene {
   }
 
   hide() {
-    if (this.root) this.root.hidden = true;
+    if (this.root) {
+      this.root.dataset.shown = 'false';
+      this.root.hidden = true;
+    }
     this._cancelTimers();
     this._resetBlackout();
     this.bubbles.clear();

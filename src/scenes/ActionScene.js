@@ -143,6 +143,7 @@ export class ActionScene {
     this.currentMenuIndex = menuIndex;
     this.keepCount = 0;          // 入場時にリセット
     this.root.hidden = false;
+    requestAnimationFrame(() => { this.root.dataset.shown = 'true'; });
     this._renderStage(menuIndex);
     this._cancelPromptTimer();
     this._cancelStartTimers();
@@ -173,7 +174,10 @@ export class ActionScene {
   }
 
   hide() {
-    if (this.root) this.root.hidden = true;
+    if (this.root) {
+      this.root.dataset.shown = 'false';
+      this.root.hidden = true;
+    }
     this._cancelPromptTimer();
     this._cancelStartTimers();
     this._cancelKeepReplyTimers();
