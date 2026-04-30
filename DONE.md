@@ -5,6 +5,33 @@
 
 ---
 
+### G011 — Capacitor APK ビルド準備 + GitHub 初公開 ✅ 2026-04-30
+
+**GitHub リポジトリ初公開**:
+- リモート `git@github.com:IzumiKawabata/GentleGyaru.git` に main ブランチ push 成功
+- SSH 鍵: `~/.ssh/win_fork_ssh`（リポジトリ専用 `core.sshCommand` で固定）
+- 初回コミット: 全 src/ コード + 8枚静止画（実画像 各2MB）+ 10音声 + ドキュメント一式
+
+**画像更新**:
+- ダミー（SD-001 流用）→ Izumi が静止画に差し替え（2026-04-30）
+- まだ静止画。アニメーション WebP は後続で対応
+
+**Capacitor Android プラットフォーム追加**:
+- `typescript` 追加で `capacitor.config.ts` 認識可能に
+- `npx cap add android` 成功、`android/` プラットフォーム生成
+- `npx cap sync android` 成功、dist→android/app/src/main/assets/public コピー
+- ビルド結果: 31MB の元画像が `optimize-images` プラグインで 1.6MB に圧縮（-95%）
+
+**残作業（Izumi 環境で実行）**:
+- `npx cap open android` で Android Studio 起動
+- Studio 内で実機 or エミュレータ起動 → APK ビルド
+- パッケージ名は OPEN_QUESTIONS #9（別名義決定）後に確定
+- 現状は暫定 `com.gentlegal.app`
+
+**注意**:
+- `android/` は `.gitignore` で除外中（Capacitor 公式推奨は inclusion だが、PlanetIP 規約に従いプラットフォームコードはローカル管理）
+- Studio で APK 生成後、リリース署名 + アライメントは別途
+
 ### Iteration 2026-04-30 (#11) — プレイ中ゲージ非表示 / Fire promptをメッセージ駆動 ✅ 2026-04-30
 
 **プレイ中は愛情ゲージ非表示**:
