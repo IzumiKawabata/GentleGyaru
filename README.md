@@ -20,13 +20,17 @@ npm run dev    # http://localhost:5175
 
 ## ビルドターゲット
 
-| ターゲット | コマンド | 出力 |
+| ターゲット | コマンド | 出力 / 配布先 |
 |---|---|---|
 | Web (Vite dev) | `npm run dev` | http://localhost:5175 |
-| PWA (本番ビルド) | `npm run build` | `dist/` |
+| **Vercel deploy（メイン）** | `git push` | GitHub → Vercel 自動デプロイ |
+| PWA (本番ビルド) | `npm run build` | `dist/`（Vercel が自動実行） |
 | プレビュー | `npm run preview` | http://localhost:4174 |
-| Android APK | `npx cap sync && npx cap open android` | Capacitor経由（要セットアップ G002） |
-| PC Electron | `npm run electron:build` | electron-builder（要セットアップ G003） |
+| Android APK | `npx cap sync && npx cap open android` | DLsite 配布用、ローカル都度ビルド |
+| PC Electron | `npm run electron:build` | DLsite 配布用、ローカル都度ビルド |
+
+> **Vercel** が動作確認用のメインデプロイ先。Framework Preset = `Vite`、Build Command = `npm run build`、Output Directory = `dist`（Vercel自動検出）。
+> **APK / Electron** はDLsite配布時にローカルで都度ビルド（GitHub には含めない、`.gitignore` で除外）。
 
 ## アセット格納パス早見表
 
