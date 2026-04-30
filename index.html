@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <title>Gentle Gal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles/main.css" />
+</head>
+<body>
+  <div id="app" class="app" oncontextmenu="return false" ondragstart="return false">
+    <div id="loading-screen" class="loading-blackout"></div>
+
+    <!-- 愛情ゲージ: 左上に3個ハート（finish中は非表示） -->
+    <div id="love-gauge" class="love-gauge" aria-label="愛情ゲージ">
+      <span class="love-gauge__heart" data-filled="false">💗</span>
+      <span class="love-gauge__heart" data-filled="false">💗</span>
+      <span class="love-gauge__heart" data-filled="false">💗</span>
+    </div>
+
+    <!-- WaitingScene: 1つの bubble-track にキャラ発話 + 選択肢 + プレイヤー応答が積まれる -->
+    <section id="waiting-scene" class="scene waiting-scene" hidden>
+      <div class="full-stage" id="waiting-stage"></div>
+      <div class="bubble-track" id="waiting-bubbles"></div>
+      <button class="reset-btn" id="reset-btn" type="button" aria-label="リセット">⟲</button>
+    </section>
+
+    <!-- ActionScene: ループアニメ + Fire/Keep choice + play中バブル -->
+    <section id="action-scene" class="scene action-scene" hidden>
+      <div class="full-stage" id="action-stage"></div>
+      <div class="action-tap-zone" id="action-tap-zone" aria-label="話しかける"></div>
+      <div class="bubble-track bubble-track--action" id="action-bubbles"></div>
+      <!-- プレイ開始時のゆっくり暗転（フィニッシュの深ブラックアウトの対称） -->
+      <div class="action-blackout" id="action-blackout" data-active="true"></div>
+    </section>
+
+    <!-- FinishScene: フィニッシュ演出 + 余韻セリフ + 約束 + 深ブラックアウト -->
+    <section id="finish-scene" class="scene finish-scene" hidden>
+      <div class="full-stage" id="finish-stage"></div>
+      <div class="finish-flash"></div>
+      <div class="finish-vignette"></div>
+      <div class="bubble-track bubble-track--finish" id="finish-bubbles"></div>
+      <div class="deep-blackout" id="deep-blackout"></div>
+    </section>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  </script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

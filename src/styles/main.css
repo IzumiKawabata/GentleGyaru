@@ -1,0 +1,450 @@
+/* Gentle Gal — main styles
+ * 白黒ミニマル + アクセントカラー（キャラ別、Gentle Gal は黄色）
+ * チャット内選択肢、1ラリーの流れ、画面下部は薄い黒透過
+ */
+
+:root {
+  /* キャラ別アクセント。Heroine の themeColor に合わせる
+   * Gentle Gal #1: SD-001 MIKU gentle-shy → 薄ブルー (#a9c8e6) */
+  --accent: rgba(169, 200, 230, 0.62);
+  --accent-solid: #a9c8e6;
+  --accent-text: #11293a;
+  --accent-border: rgba(169, 200, 230, 0.85);
+
+  --ink: #111;
+  --ink-soft: rgba(17, 17, 17, 0.6);
+  --paper: #ffffff;
+  --paper-glass: rgba(255, 255, 255, 0.55);
+  --paper-glass-border: rgba(255, 255, 255, 0.78);
+  --hairline: rgba(17, 17, 17, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', sans-serif;
+  font-weight: 400;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* === Loading blackout === */
+.loading-blackout {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+/* === Scene container === */
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.scene[hidden] {
+  display: none;
+}
+
+/* === Full stage (キャラ画一点集中) === */
+.full-stage {
+  position: absolute;
+  inset: 0;
+  background-color: var(--paper);
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* キャラ画下端の透過黒：眩しい白フェードを廃止して、薄黒で文字を読みやすく */
+.full-stage::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60%;
+  background: linear-gradient(to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.18) 35%,
+    rgba(0, 0, 0, 0.42) 75%,
+    rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+/* === Scene 共通 === */
+.waiting-scene .full-stage,
+.action-scene .full-stage,
+.finish-scene .full-stage {
+  z-index: 1;
+}
+
+/* === Bubble track (チャット履歴 + 選択肢を内包する単一トラック) === */
+.bubble-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1em 4vw calc(1.4em + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  z-index: 5;
+  pointer-events: none;
+  max-height: 60vh;
+  overflow: hidden;
+}
+
+/* 通常チャットバブル（薄背景 + 白文字 + 軽blur） */
+.chat-bubble {
+  max-width: 78%;
+  padding: 0.65em 1em;
+  border-radius: 1.1em;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: bubble-in 0.32s ease-out forwards;
+  pointer-events: auto;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+.chat-bubble--char {
+  align-self: flex-start;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom-left-radius: 0.3em;
+}
+
+.chat-bubble--player {
+  align-self: flex-end;
+  background: rgba(169, 200, 230, 0.32);
+  border: 1px solid var(--accent-border);
+  border-bottom-right-radius: 0.3em;
+  font-weight: 500;
+}
+
+@keyframes bubble-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === 選択肢グループ (チャット内に積まれる、横並び flex-wrap で統一) === */
+.choice-group {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45em;
+  max-width: 92%;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: bubble-in 0.3s ease-out forwards;
+  pointer-events: auto;
+}
+
+.choice-group[data-spent="true"] {
+  pointer-events: none;
+}
+
+/* 選択肢バブル（白背景・黒文字・控えめな影） */
+.choice-bubble {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.65em 1.1em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.2s ease, color 0.2s ease,
+              border-color 0.2s ease, opacity 0.45s ease,
+              max-height 0.45s ease, padding 0.45s ease,
+              margin 0.45s ease, border-width 0.45s ease;
+  text-align: left;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  max-height: 4em;
+  overflow: hidden;
+}
+
+.choice-bubble:active {
+  transform: scale(0.97);
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent-border);
+}
+
+/* 条件付き（loveGauge 不足時の本番選択肢など）: 見た目はほぼそのまま、押すと reject */
+.choice-bubble[data-conditional="true"] {
+  border-style: dashed;
+  border-color: rgba(26, 26, 26, 0.35);
+}
+
+/* 選ばれた1つはアクセントカラーに塗る（プレイヤーの発話バブル感を強める） */
+.choice-bubble[data-chosen="true"] {
+  background: var(--accent);
+  border-color: var(--accent-border);
+  border-style: solid;
+  color: var(--accent-text);
+}
+
+/* 選択後、選ばれなかった選択肢は横にも縦にも折りたたんで消える
+ * → 残った1つが flex-end で右に詰まる */
+.choice-bubble--vanish {
+  opacity: 0;
+  max-height: 0;
+  max-width: 0;
+  padding: 0;
+  margin: 0;
+  border-width: 0;
+  pointer-events: none;
+}
+
+.choice-num {
+  display: inline-block;
+  min-width: 1.1em;
+  font-weight: 700;
+  font-feature-settings: 'tnum';
+  letter-spacing: 0;
+  opacity: 0.85;
+}
+
+.choice-lock {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+/* Fire/Keep のような番号無しアクションペア（レイアウトは共通、番号だけ消す） */
+.choice-group--actions .choice-num {
+  display: none;
+}
+
+.choice-group--actions .choice-bubble {
+  padding: 0.6em 1.4em;
+}
+
+/* === Love gauge (左上、3個ハート) === */
+.love-gauge {
+  position: fixed;
+  top: 0.7em;
+  left: 0.7em;
+  display: flex;
+  gap: 0.18em;
+  z-index: 25;
+  padding: 0.4em 0.7em;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.love-gauge__heart {
+  display: inline-block;
+  filter: grayscale(1) brightness(0.6);
+  opacity: 0.4;
+  transition: filter 0.4s ease, opacity 0.4s ease, transform 0.3s ease;
+}
+
+.love-gauge__heart[data-filled="true"] {
+  filter: none;
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* action / finish シーン中は love-gauge を隠す（プレイ中の没入感優先） */
+.app[data-route="action"] .love-gauge,
+.app[data-route="finish"] .love-gauge {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+/* === Reset button (隠し配置) === */
+.reset-btn {
+  position: absolute;
+  top: 0.6em;
+  right: 0.6em;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 20;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.reset-btn:active {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* === ActionScene === */
+.action-tap-zone {
+  position: absolute;
+  inset: 0 0 30vh 0;
+  z-index: 2;
+  cursor: pointer;
+}
+
+/* WaitingScene と同じ位置・高さに統一 */
+.bubble-track--action {
+  bottom: 0;
+  z-index: 6;
+  max-height: 60vh;
+}
+
+/* ActionScene 開始時のゆっくり暗転 → フェードアウト
+ * deep-blackout (FinishScene) の対称。show 時は active=true で真っ黒、
+ * フェードアウトすることで「目を開けたら始まってる」感を作る */
+.action-blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background: #000;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 1.6s ease-out;
+}
+
+.action-blackout[data-active="false"] {
+  opacity: 0;
+}
+
+/* FIRE バブル: 透け感 + 控えめな枠 */
+.fire-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(2.4em + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(8px);
+  padding: 0.85em 2.4em;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper-glass);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  z-index: 11;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.9s ease, transform 0.9s ease, background 0.18s, color 0.18s;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+
+.fire-bubble[data-visible="true"] {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.fire-bubble:active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent-border);
+  transform: translateX(-50%) translateY(0) scale(0.96);
+}
+
+/* === FinishScene === */
+.finish-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+  animation: finish-pulse 4s ease-in-out;
+}
+
+.finish-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.92);
+  opacity: 0;
+  animation: finish-flash 1.6s ease-out;
+}
+
+/* 余韻バブル: 通常 chat-bubble だが、finish-scene では下端から立ち上がる */
+.bubble-track--finish {
+  bottom: 0;
+  z-index: 7;
+}
+
+/* 深いブラックアウト: 余韻後に画面が完全に暗転（2秒かけて深く） */
+.deep-blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 2s ease-in;
+}
+
+.deep-blackout[data-active="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@keyframes finish-pulse {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes finish-flash {
+  0%   { opacity: 0; }
+  6%   { opacity: 0.85; }
+  35%  { opacity: 0.18; }
+  100% { opacity: 0; }
+}
