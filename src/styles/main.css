@@ -39,13 +39,23 @@ html, body {
   touch-action: none;
 }
 
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ゲームエリア: 9:16 (縦持ち16:9) で中央に閉じ込める。
+ * 横に広げても aspect-ratio で枠内に収まり、外は白 paper、境界は黒シャドウで表現。
+ * チャット / 選択肢などはすべて .app 内に閉じるので幅は変わらない。 */
 .app {
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  width: min(100vw, calc(100dvh * 9 / 16));
+  height: min(100dvh, calc(100vw * 16 / 9));
+  aspect-ratio: 9 / 16;
   overflow: hidden;
   background: var(--paper);
+  box-shadow: 0 4px 36px rgba(0, 0, 0, 0.22);
 }
 
 /* === Loading blackout === */
@@ -260,9 +270,9 @@ html, body {
   padding: 0.5em 1.3em;
 }
 
-/* === Love gauge（左上、ミニマル白系） === */
+/* === Love gauge（左上、ミニマル白系。.app 内に閉じる） === */
 .love-gauge {
-  position: fixed;
+  position: absolute;
   top: 0.7em;
   left: 0.7em;
   display: flex;
