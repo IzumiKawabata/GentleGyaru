@@ -71,14 +71,14 @@ html, body {
   display: none;
 }
 
-/* === Full stage (キャラ画一点集中) === */
+/* === Full stage (キャラ画一点集中、fit 表示で全体を見せる) === */
 .full-stage {
   position: absolute;
   inset: 0;
-  background-color: var(--paper);
-  background-position: center top;
+  background-color: #000;
+  background-position: center center;
   background-repeat: no-repeat;
-  background-size: cover;
+  background-size: contain;
 }
 
 /* キャラ画下端の透過黒：眩しい白フェードを廃止して、薄黒で文字を読みやすく */
