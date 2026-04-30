@@ -68,6 +68,70 @@ body {
   transition: opacity 0.4s ease;
 }
 
+/* === Splash 画面 (起動時、ふわっとフェード) === */
+.splash {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6em;
+  opacity: 0;
+  animation: splash-in 0.9s ease-out forwards;
+  transition: opacity 0.9s ease-in;
+  pointer-events: auto;
+}
+
+.splash[data-fade="out"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  margin: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: splash-title-in 1.4s 0.2s cubic-bezier(0.22, 0.9, 0.32, 1) forwards;
+}
+
+.splash-bar {
+  width: 56%;
+  max-width: 220px;
+  height: 1.5px;
+  background: rgba(26, 26, 26, 0.12);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0;
+  animation: splash-bar-in 0.8s 0.5s ease-out forwards;
+}
+
+.splash-bar__fill {
+  width: 0%;
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.32s cubic-bezier(0.22, 0.9, 0.32, 1);
+}
+
+@keyframes splash-in {
+  to { opacity: 1; }
+}
+
+@keyframes splash-title-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes splash-bar-in {
+  to { opacity: 1; }
+}
+
 /* === Scene container === */
 .scene {
   position: absolute;
@@ -139,8 +203,9 @@ body {
   line-height: 1.55;
   letter-spacing: 0.02em;
   opacity: 0;
-  transform: translateY(8px);
-  animation: bubble-in 0.32s ease-out forwards;
+  transform: translateY(14px) scale(0.96);
+  filter: blur(4px);
+  animation: bubble-in 0.62s cubic-bezier(0.22, 0.9, 0.32, 1) forwards;
   pointer-events: auto;
   color: var(--ink);
   backdrop-filter: blur(10px) saturate(140%);
@@ -164,13 +229,22 @@ body {
 }
 
 @keyframes bubble-in {
-  to {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+    filter: blur(4px);
+  }
+  60% {
     opacity: 1;
-    transform: translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
   }
 }
 
-/* === 選択肢グループ（横並び flex-wrap） === */
+/* === 選択肢グループ（横並び flex-wrap、ふわっと立ち上がり） === */
 .choice-group {
   align-self: flex-end;
   display: flex;
@@ -180,8 +254,9 @@ body {
   gap: 0.45em;
   max-width: 92%;
   opacity: 0;
-  transform: translateY(8px);
-  animation: bubble-in 0.3s ease-out forwards;
+  transform: translateY(14px) scale(0.96);
+  filter: blur(4px);
+  animation: bubble-in 0.62s cubic-bezier(0.22, 0.9, 0.32, 1) forwards;
   pointer-events: auto;
 }
 

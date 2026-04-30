@@ -74,8 +74,8 @@ export class FinishScene {
     this.root = document.getElementById('finish-scene');
     this.stage = document.getElementById('finish-stage');
     this.blackout = document.getElementById('deep-blackout');
-    // 余韻も「常に1つ表示」で噛みしめる時間を作る
-    this.bubbles = new ChatBubbles(document.getElementById('finish-bubbles'), { max: 1 });
+    // 他シーンと同様に縦スタック（afterglow1 + afterglow2 + promise が積まれる）
+    this.bubbles = new ChatBubbles(document.getElementById('finish-bubbles'), { max: 4 });
 
     this._timers = [];
     this._afterglow1Idx = [0, 0, 0];
