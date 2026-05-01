@@ -37,7 +37,7 @@ export const LOVE_MAX = 3;
 const DEFAULTS = {
   // 進行
   affectionStage: 1,
-  loveGauge:     0,                      // 0..LOVE_MAX
+  loveGauge:     1,                      // 0..LOVE_MAX（初期 1 = 最初から少し受容感あり、Izumi 2026-05-01）
   menuUnlocked:  [true, true, true],     // 全部押せる（lock UI 廃止）。ACT-03 は loveGauge で condition
   completedActs: [false, false, false],
   currentScene:  'waiting',

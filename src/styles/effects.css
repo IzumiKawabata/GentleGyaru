@@ -1,0 +1,68 @@
+/* Gentle Gal — Effects
+ * ActionScene 暗転、Finish のフラッシュ・ヴィネット、深ブラックアウト。
+ */
+
+/* ActionScene 入場時の暗転（黒のまま）— 2s フェード（finish→home と揃える） */
+.action-blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background: #000;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 2s ease-out;
+}
+
+.action-blackout[data-active="false"] {
+  opacity: 0;
+}
+
+/* === FinishScene === */
+.finish-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(26, 26, 26, 0.18) 100%);
+  animation: finish-pulse 4s ease-in-out;
+}
+
+.finish-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.92);
+  opacity: 0;
+  animation: finish-flash 1.6s ease-out;
+}
+
+/* 深いブラックアウト（演出時のみ黒、それ以外は白基調） */
+.deep-blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 2s ease-in;
+}
+
+.deep-blackout[data-active="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@keyframes finish-pulse {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes finish-flash {
+  0%   { opacity: 0; }
+  6%   { opacity: 0.9; }
+  35%  { opacity: 0.18; }
+  100% { opacity: 0; }
+}

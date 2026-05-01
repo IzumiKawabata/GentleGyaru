@@ -4,65 +4,67 @@
  * 1ラリー = キャラ発話 → 選択肢グループ → プレイヤー選択 → キャラ応答 → 次の選択肢
  * すべて bubble-track 内に縦に積まれる。
  *
+ * Izumi 2026-05-01 改修:
+ *   - フルボイス（1文目・2文目とも voice 再生）
+ *   - voice-driven pacing（バブル/遷移はボイス終了を待つ）
+ *   - タップで現在ステップを早送り（TapAdvancer）
+ *
  * afterFinish モード:
  *   App から show({ afterFinish: true }) で呼ばれた時、フィニッシュ直後の
- *   「まだする？」連続セッション感を出す（時間スキップなし）。
+ *   「まだする？」連続セッション感を出す。
  */
 
-import { getWaitImage, BGM_FILES, SE_FILES, VOICE_FILES } from '../game/GentleGalCharacter.js';
+import { getWaitImage, BGM_FILES, VOICE_POOLS } from '../game/GentleGalCharacter.js';
 import { canDoMain, recordMainReject } from '../game/GentleGalState.js';
 import { ChatBubbles } from '../ui/ChatBubbles.js';
 import { renderLoveGauge } from '../ui/LoveGaugeUI.js';
+import { TapAdvancer } from '../utils/TapAdvancer.js';
 
-// エンディングのテンポ感（afterglow1=1.6s, afterglow2=5.2s 等）と揃える
-const TRANSITION_MS = 2200;
+// 起動時の挨拶テンポ（voice 終了後のブレス＝呼吸間）
+const BREATH_BEFORE_GREET2_MS = 700;
+const BREATH_BEFORE_CHOICES_MS = 900;
+// 初回起動時のみ追加遅延: スプラッシュ fade-out (1s) + シーン fade-in (1s) 待ち
+const INITIAL_LAUNCH_DELAY_MS = 1500;
+// メニュー選択後の余韻（ACCEPT バブル/voice 完了後 → action 遷移）
+const POST_ACCEPT_BREATH_MS = 700;
+// reject バブル後 → 選択肢再表示
+const POST_REJECT_BREATH_MS = 1200;
 
-// 起動時の挨拶テンポ（駛馬 = テンポ速め。ActionScene 開始セリフより速い）
-const GREET_BUBBLE_1_MS = 0;
-const GREET_BUBBLE_2_MS = 1000;
-const GREET_CHOICES_MS  = 2000;
-
-// 本番選択時、loveGauge 不足での reject バブル
-// 進捗を絵文字（💗）で示す
+// 本番選択時、loveGauge 不足での reject バブル（VOICE_POOLS.REJECT と 1:1）
 const MAIN_REJECT_BUBBLES = [
   'ん〜...もうちょっと仲良くなってからぁ',
-  'まだ早いって。あとちょっとで本気出してあげる',
-  'もうちょっと焦らされないと、ね？',
+  'もうちょっと、してからね？...楽しみにしてて',
 ];
 
-// 起動時2セリフ: ① 様子伺い → ② 受容/気遣いひとこと（ActionScene と同じ哲学）
+// 起動時 1文目（様子伺い）— ランダムプール
 const GREETING_BUBBLES_1 = {
-  1: ['よろしく〜。なに、緊張してる？', 'はじめまして？...かな', 'ふふっ、なんか緊張する〜'],
-  2: ['お、戻ってきたんだ', 'また会えた...嬉しい', 'おっ、よく来たじゃん'],
+  1: ['よろしく〜。あれっ、緊張してる？', 'はじめましてだよね、なんか嬉しいかも〜'],
+  2: ['また会えたね...おかえり💕', 'おっ！やっほ～！'],
 };
 
-const GREETING_BUBBLES_2 = {
-  1: ['ゆっくりでいいよ、無理しないで', '焦らなくていいから、ね？', '気楽にいこ？'],
-  2: ['今日もよろしくね', '今日はなにしよっか', 'ゆっくり時間あるからさ'],
+// 起動時 2文目（受容ひとこと）— 固定 1 文 / Stage、voice あり
+const GREETING_2_FIXED = {
+  1: 'ゆっくりだから、安心して？',
+  2: 'ゆっくり時間あるから楽しも...?',
 };
 
-// フィニッシュ直後の連続セッション挨拶（時間スキップなし）
+// afterFinish 1文目（連続セッション挨拶）— ランダムプール
 const AFTER_FINISH_GREETINGS_1 = [
-  'ふぅ...まだする？',
-  'まだ余裕じゃん？',
-  'もう一回いっとく？',
-  'ね、もうちょい付き合ってよ',
+  'いっぱいでたね...',
+  'まだちんこガチガチじゃん...',
+  'ねぇ....もうちょい付き合ってよ',
 ];
 
-const AFTER_FINISH_GREETINGS_2 = [
-  '焦らせないで、ね？',
-  'ゆっくり、付き合ってあげる',
-  '無理しないでよ？',
-  'いつでも止めていいからね',
-];
+// afterFinish 2文目 — 固定 1 文、voice あり
+const AFTER_FINISH_2_FIXED = 'ふふ...ゆっくり焦らないで';
 
 // メニュー選択肢の絵文字（ノンバーバル原則）
 const CHOICE_LABELS = ['✋ 手で', '💋 口で', '💞 本番で'];
 
 const ACCEPT_BUBBLES = [
-  ['任せて〜...指、すっごく丁寧にいくね', 'やさしくしてあげる', 'ふふ、じゃ手だしな？'],
-  ['ん〜...いいよ、口で。', 'リップ落ちちゃうけど、ま、いっか', 'ちょっと、目つぶってて'],
-  ['本気でいくの？...いいよ、ちゃんと受け止める', 'ここまで来たら全部あげる', 'もう、しょうがないな〜'],
+  ['おっけー、ズボン...降ろしてくれる？', 'まかせて...やさしくしてあげる。'],
+  ['口ね。おっけ～', 'ぷるぷるリップで...いいの？嬉しい〜'],
+  ['えっ....ん...いい...よ', 'もう～しょうがないなぁ...'],
 ];
 
 export class WaitingScene {
@@ -72,7 +74,6 @@ export class WaitingScene {
     this.audio = audio;
     this.root = document.getElementById('waiting-scene');
     this.stage = document.getElementById('waiting-stage');
-    this.resetBtn = document.getElementById('reset-btn');
     this.bubbles = new ChatBubbles(document.getElementById('waiting-bubbles'), { max: 10 });
 
     this._bound = false;
@@ -80,34 +81,32 @@ export class WaitingScene {
     this._acceptIdx = [0, 0, 0];
     this._transitioning = false;
     this._currentChoiceGroup = null;
-    this._greetTimers = [];
+    this._initialLaunch = true;
+    // タップで音声 + 待機を skip
+    this._advancer = new TapAdvancer({
+      rootEl: this.root,
+      onSkip: () => this.audio?.stopVoice(),
+    });
+    this._currentSequence = null;
   }
 
   show({ afterFinish = false } = {}) {
     if (!this.root) return;
     this.root.hidden = false;
-    // 次フレームで data-shown を立てて 1s フェードイン
     requestAnimationFrame(() => { this.root.dataset.shown = 'true'; });
     this._renderStage();
     this.bubbles.clear();
     this._transitioning = false;
     this._currentChoiceGroup = null;
-    this._cancelGreetTimers();
     this._bind();
+    this._advancer.bind();
     renderLoveGauge(this.state);
 
-    // 起動時/帰還時も ActionScene と同じテンポ感: ① 様子伺い → ② 気遣い → 選択肢
-    const [g1, g2] = this._chooseGreetingPair(afterFinish);
-    this._greetTimers.push(setTimeout(() => this.bubbles.push('char', g1), GREET_BUBBLE_1_MS));
-    this._greetTimers.push(setTimeout(() => this.bubbles.push('char', g2), GREET_BUBBLE_2_MS));
-    this._greetTimers.push(setTimeout(() => this._renderChoices(), GREET_CHOICES_MS));
-
-    // 待機 BGM 開始 + 挨拶ボイス
+    // 待機 BGM
     this.audio?.startBgm(BGM_FILES.WAIT);
-    const greetingFile = this.state.affectionStage === 2
-      ? VOICE_FILES.WAIT_STAGE_2
-      : VOICE_FILES.WAIT_STAGE_1;
-    setTimeout(() => this.audio?.playVoice(greetingFile), 200);
+
+    // 挨拶シーケンス（voice-driven pacing）
+    this._currentSequence = this._runGreetingSequence(afterFinish);
   }
 
   hide() {
@@ -115,12 +114,46 @@ export class WaitingScene {
       this.root.dataset.shown = 'false';
       this.root.hidden = true;
     }
-    this._cancelGreetTimers();
+    this._advancer.unbind();
   }
 
-  _cancelGreetTimers() {
-    for (const t of this._greetTimers) clearTimeout(t);
-    this._greetTimers = [];
+  /**
+   * 挨拶シーケンス: 1文目 (voice) → ブレス → 2文目 (voice) → ブレス → 選択肢
+   * voice 終了で次へ進む。タップでボイス + 待機 skip。
+   */
+  async _runGreetingSequence(afterFinish) {
+    const { texts: [g1Text, g2Text], voices: [g1Voice, g2Voice] } =
+      this._chooseGreetingPair(afterFinish);
+
+    // 初回起動時のみ待機（splash fade 後）
+    if (this._initialLaunch && !afterFinish) {
+      await this._advancer.sleep(INITIAL_LAUNCH_DELAY_MS);
+    }
+    this._initialLaunch = false;
+    if (!this._isAlive()) return;
+
+    // 1文目: バブル + voice → 終了待ち
+    this.bubbles.push('char', g1Text);
+    await this._advancer.step(this.audio?.playVoice(g1Voice) ?? Promise.resolve());
+    if (!this._isAlive()) return;
+
+    // ブレス
+    await this._advancer.sleep(BREATH_BEFORE_GREET2_MS);
+    if (!this._isAlive()) return;
+
+    // 2文目: バブル + voice → 終了待ち
+    this.bubbles.push('char', g2Text);
+    await this._advancer.step(this.audio?.playVoice(g2Voice) ?? Promise.resolve());
+    if (!this._isAlive()) return;
+
+    // ブレス → 選択肢
+    await this._advancer.sleep(BREATH_BEFORE_CHOICES_MS);
+    if (!this._isAlive()) return;
+    this._renderChoices();
+  }
+
+  _isAlive() {
+    return !this.root?.hidden && !this._transitioning;
   }
 
   _renderStage() {
@@ -130,21 +163,25 @@ export class WaitingScene {
   }
 
   _chooseGreetingPair(afterFinish) {
-    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const pickIdx = (arr) => Math.floor(Math.random() * arr.length);
     if (afterFinish) {
-      return [pick(AFTER_FINISH_GREETINGS_1), pick(AFTER_FINISH_GREETINGS_2)];
+      const i1 = pickIdx(AFTER_FINISH_GREETINGS_1);
+      return {
+        texts:  [AFTER_FINISH_GREETINGS_1[i1], AFTER_FINISH_2_FIXED],
+        voices: [VOICE_POOLS.AFTER_FINISH_1[i1], VOICE_POOLS.AFTER_FINISH_2],
+      };
     }
     const stage = this.state.affectionStage === 2 ? 2 : 1;
-    return [pick(GREETING_BUBBLES_1[stage]), pick(GREETING_BUBBLES_2[stage])];
-  }
-
-  _scheduleChoices(delay = 0) {
-    this._greetTimers.push(setTimeout(() => this._renderChoices(), delay));
+    const pool1 = GREETING_BUBBLES_1[stage];
+    const i1 = pickIdx(pool1);
+    return {
+      texts:  [pool1[i1], GREETING_2_FIXED[stage]],
+      voices: [VOICE_POOLS.GREET1[stage][i1], VOICE_POOLS.GREET2[stage]],
+    };
   }
 
   _renderChoices() {
     const mainOk = canDoMain(this.state);
-    // ACT-03 は conditional だけ伝える。ラベルは固定（ゲージ進捗は左上の love-gauge UI で表現）
     const items = CHOICE_LABELS.map((label, i) => (
       i === 2 ? { label, conditional: !mainOk } : { label }
     ));
@@ -156,28 +193,15 @@ export class WaitingScene {
   }
 
   _bind() {
+    // リセットボタン廃止（Izumi 2026-05-01）。bind 不要だが将来用に no-op 残す。
     if (this._bound) return;
     this._bound = true;
-
-    this.resetBtn?.addEventListener('click', () => {
-      const now = Date.now();
-      if (this._lastResetTap && now - this._lastResetTap < 600) {
-        this.bus.emit('request:reset');
-        this._lastResetTap = 0;
-      } else {
-        this._lastResetTap = now;
-        this.bubbles.push('char', '本当に消す？もう1回タップで...');
-      }
-    });
   }
 
   _onChoiceTap(menuIndex) {
     if (this._transitioning) return;
-
     this.audio?.resume();
-    this.audio?.playSe(SE_FILES.TAP);
 
-    // ACT-03 本番は loveGauge MAX 必須。不足なら reject
     if (menuIndex === 2 && !canDoMain(this.state)) {
       this._handleMainReject(menuIndex);
       return;
@@ -185,40 +209,47 @@ export class WaitingScene {
     this._handleAccept(menuIndex);
   }
 
-  _handleAccept(menuIndex) {
+  /**
+   * メニュー受諾: ACCEPT バブル + voice 終了 → ブレス → action 遷移
+   */
+  async _handleAccept(menuIndex) {
     this._transitioning = true;
-
-    // 選んだ選択肢以外はアニメーションで折りたたみ消去
     this.bubbles.keepOnly(this._currentChoiceGroup, menuIndex);
     this._currentChoiceGroup = null;
 
-    // プレイヤー発話 → 280ms後にキャラOK系 → 1秒余韻 → action 遷移
-    setTimeout(() => {
-      const pool = ACCEPT_BUBBLES[menuIndex] || ACCEPT_BUBBLES[0];
-      const idx = this._acceptIdx[menuIndex] % pool.length;
-      this._acceptIdx[menuIndex]++;
-      this.bubbles.push('char', pool[idx]);
-    }, 280);
+    const m = Math.max(0, Math.min(2, menuIndex));
+    const pool = ACCEPT_BUBBLES[m];
+    const voicePool = VOICE_POOLS.ACCEPT[m];
+    const idx = this._acceptIdx[m] % pool.length;
+    this._acceptIdx[m]++;
 
-    setTimeout(() => {
-      this.bus.emit('request:action', { menuIndex });
-    }, 280 + TRANSITION_MS);
+    // 280ms の余白でプレイヤー選択の余韻 → ACCEPT バブル + voice
+    await this._advancer.sleep(280);
+    this.bubbles.push('char', pool[idx]);
+    await this._advancer.step(this.audio?.playVoice(voicePool[idx]) ?? Promise.resolve());
+    await this._advancer.sleep(POST_ACCEPT_BREATH_MS);
+
+    this.bus.emit('request:action', { menuIndex });
   }
 
-  _handleMainReject(menuIndex) {
-    // 「本番で」を選んだが loveGauge < MAX → reject + ゲージ-1（強要ペナルティ）
-    // ゲージ可視化は左上の love-gauge UI に任せ、バブルは reject セリフのみ
+  /**
+   * 本番強要拒否: reject バブル + voice 終了 → ブレス → 選択肢再表示
+   */
+  async _handleMainReject(menuIndex) {
     this.bubbles.keepOnly(this._currentChoiceGroup, menuIndex);
     recordMainReject(this.state);
     renderLoveGauge(this.state);
 
-    const text = MAIN_REJECT_BUBBLES[this._rejectIdx % MAIN_REJECT_BUBBLES.length];
+    const idx = this._rejectIdx % MAIN_REJECT_BUBBLES.length;
+    const text = MAIN_REJECT_BUBBLES[idx];
+    const voice = VOICE_POOLS.REJECT[idx];
     this._rejectIdx++;
-    setTimeout(() => {
-      this.bubbles.push('char', text);
-      this.audio?.playVoice(VOICE_FILES.REJECT_LOCKED);
-      // 新しい選択肢グループを再提示
-      this._scheduleChoices(1700);
-    }, 320);
+
+    await this._advancer.sleep(320);
+    this.bubbles.push('char', text);
+    await this._advancer.step(this.audio?.playVoice(voice) ?? Promise.resolve());
+    await this._advancer.sleep(POST_REJECT_BREATH_MS);
+
+    this._renderChoices();
   }
 }

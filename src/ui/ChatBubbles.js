@@ -65,7 +65,8 @@ export class ChatBubbles {
 
       if (item.icon) {
         const icon = document.createElement('span');
-        icon.className = 'choice-lock';
+        icon.className = 'choice-lock emoji';
+        icon.setAttribute('aria-hidden', 'true');
         icon.textContent = item.icon;
         btn.appendChild(icon);
       }

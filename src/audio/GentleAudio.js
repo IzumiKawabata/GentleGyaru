@@ -20,6 +20,10 @@ import {
   getSePath,
 } from '../game/GentleGalCharacter.js';
 
+// Voice loop ducking: バブルボイス再生中は loop を完全に下げる
+const LOOP_NORMAL_FACTOR = 0.4;
+const LOOP_DUCKED_FACTOR = 0.0;
+
 export class GentleAudio {
   constructor({ state }) {
     this._engine = new AudioEngine();
@@ -33,6 +37,7 @@ export class GentleAudio {
 
     this._bgmCtrl = null;
     this._voiceLoopCtrl = null;
+    this._loopVolumeFactor = LOOP_NORMAL_FACTOR; // 現在のループ通常音量倍率
   }
 
   /** user gesture で呼ぶ（autoplay policy 回避） */
@@ -65,29 +70,93 @@ export class GentleAudio {
   }
 
   // === Voice (one-shot) === //
-  playVoice(filename) {
-    if (!filename || this._muted) return;
+  // バブルボイス再生中は voice-loop を duck（音量0）→ 終了で復帰。
+  // Promise を返す: ボイス自然終了 / stopVoice / mute / safetyTimeout で resolve。
+  // safetyTimeout: ボイスファイル不在等で onEnded 不発のとき hang しないための保険。
+  playVoice(filename, { safetyTimeoutMs = 8000 } = {}) {
+    if (!filename || this._muted) {
+      return Promise.resolve();
+    }
     const url = resolveAssetUrl(getVoicePath(filename));
-    this._safe(() =>
-      this._engine.playOneShot?.({
-        url,
-        volume: this._mix.voice,
-        tag: 'voice',
-        group: 'voice',
-        allowOverlap: false,
-      }),
-    );
+    this._duckLoop();
+    return new Promise((resolve) => {
+      let resolved = false;
+      let safetyTimer = null;
+      const finalize = () => {
+        if (resolved) return;
+        resolved = true;
+        if (safetyTimer) { clearTimeout(safetyTimer); safetyTimer = null; }
+        this._restoreLoop();
+        if (this._currentVoiceResolver === resolve) {
+          this._currentVoiceResolver = null;
+        }
+        resolve();
+      };
+      // 古い resolver が残っていれば即座に解決（previous voice was stopped）
+      if (this._currentVoiceResolver) {
+        const prev = this._currentVoiceResolver;
+        this._currentVoiceResolver = null;
+        prev();
+      }
+      this._currentVoiceResolver = resolve;
+      // 安全弁: ボイス不在 / 再生失敗で onEnded が来ない場合の hang 回避
+      safetyTimer = setTimeout(finalize, safetyTimeoutMs);
+
+      let started = false;
+      this._safe(() => {
+        const result = this._engine.playOneShot?.({
+          url,
+          volume: this._mix.voice,
+          tag: 'voice',
+          group: 'voice',
+          allowOverlap: false,
+          onEnded: finalize,
+        });
+        started = true;
+        return result;
+      });
+      if (!started) finalize();
+    });
   }
 
-  // === Voice loop（行為中の象徴セリフループ） === //
-  startVoiceLoop(filename) {
+  /** 再生中のバブルボイスを停止し、Promise も解決させる */
+  stopVoice() {
+    this._engine.stopByTag?.('voice');
+    if (this._currentVoiceResolver) {
+      const r = this._currentVoiceResolver;
+      this._currentVoiceResolver = null;
+      this._restoreLoop();
+      r();
+    }
+  }
+
+  /** loop voice を一時的に音量 0 に下げる（バブルボイス開始時） */
+  _duckLoop() {
+    if (this._voiceLoopCtrl) {
+      this._engine.updateVolumeByTag?.('voice-loop', this._mix.voice * LOOP_DUCKED_FACTOR);
+    }
+  }
+
+  /** loop voice を通常音量に戻す（バブルボイス終了時） */
+  _restoreLoop() {
+    if (this._voiceLoopCtrl) {
+      this._engine.updateVolumeByTag?.('voice-loop', this._mix.voice * this._loopVolumeFactor);
+    }
+  }
+
+  // === Voice loop（行為中の ambient 喘ぎ声ループ） === //
+  // volumeFactor: bubble voice (one-shot) と干渉しないよう低めに設定。
+  // デフォルト 0.4（ambient = フォアグラウンド bubble の半分以下）。
+  // playVoice 中は自動で 0 に duck され、終了で復帰する。
+  startVoiceLoop(filename, { volumeFactor = LOOP_NORMAL_FACTOR } = {}) {
     this.stopVoiceLoop();
     if (!filename || this._muted) return;
+    this._loopVolumeFactor = volumeFactor;
     const url = resolveAssetUrl(getVoicePath(filename));
     this._safe(async () => {
       const ctrl = await this._engine.playLoop?.({
         url,
-        volume: this._mix.voice,
+        volume: this._mix.voice * volumeFactor,
         tag: 'voice-loop',
         group: 'voice',
       });

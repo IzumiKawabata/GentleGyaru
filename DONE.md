@@ -5,6 +5,101 @@
 
 ---
 
+### G018 — UIモダンミニマル刷新 + デザイントークン分離 + 横展開ドキュメント整備 ✅ 2026-05-01
+
+**目的**: UI/ロゴをmodern/minimal/compactに刷新し、Gentleシリーズ#2以降への横展開コストを「accent 4変数差分のみ」に圧縮する。
+
+**ロゴ刷新（二段ミニマル）**:
+- `Cormorant Garamond` 装飾セリフ → **Inter 200/300** geometric sans
+- 構造: `GENTLE`（大文字、tracking 0.32em）+ 細hairline + `gyaru`（小文字、ink-soft）
+- index.html の `.splash-title` → `.splash-logo` 三段構成に置換
+
+**タイポグラフィ刷新**:
+- Latin/UI: **Inter**（200/300/400/500/600）
+- 日本語: Zen Kaku Gothic New（継続）
+- 絵文字: **Noto Color Emoji**（Webフォント、OS差吸収）
+- Google Fonts `<link>` を3族一括取得に統一
+
+**コンポーネント・コンパクト化**:
+- `.choice-bubble`: padding 0.5em→0.42em / 0.9rem→0.84rem / box-shadow削除（フラット化）/ blur 8px→6px
+- `.choice-num`: font-weight 700→500 / opacity 0.7→0.45（番号を主役から脇役へ）
+- `.audio-toggle`: 36px→32px
+- `.love-gauge`: 透明度0.5→0.65、gap 0.15em→0.2em、絵文字専用クラス適用
+
+**デザイントークン分離（CSS分割）**:
+- `src/styles/main.css` 509行モノリス → 6ファイル分割
+- 新規: [tokens.css](src/styles/tokens.css), [base.css](src/styles/base.css), [splash.css](src/styles/splash.css), [layout.css](src/styles/layout.css), [components.css](src/styles/components.css), [effects.css](src/styles/effects.css)
+- main.css は @import エントリポイントへ縮約（17行）
+- `tokens.css` 冒頭4変数（--accent / --accent-solid / --accent-text / --accent-border）のみで横展開時のテーマ置換完了
+
+**絵文字運用ルール導入**:
+- `.emoji` ヘルパークラス（`base.css`）でNoto Color Emoji強制適用
+- index.html: ラブゲージ・音声トグルに `class="emoji"` + `aria-hidden="true"` 付与
+- [src/ui/ChatBubbles.js](src/ui/ChatBubbles.js): `.choice-lock` 生成箇所を `'choice-lock emoji'` ＋ aria-hidden に変更
+
+**battle.html 削除**:
+- 903行モノリスな「じゃれ合いバトル」を削除（Izumi決定）
+- 参照確認済み（package.json / vite.config.js / index.html / src / docs に参照ゼロ）
+
+**横展開ドキュメント新規**:
+- 新規: [Gentle/SERIES.md](../SERIES.md) — シリーズ親仕様、量産チェックリスト、命名規則表
+- 新規: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) — UI/トークン/ロゴ/絵文字運用の単一の正解
+- 更新: [Gentle/README.md](../README.md) — SERIES.md / DESIGN_SYSTEM.md へのリンク
+- 更新: [CLAUDE.md](CLAUDE.md) — 技術スタックにタイポ・トークン分離追記、横展開セクション追加
+
+**検証**:
+- `npm run build` 成功（要確認）
+- `dist/` に battle.html 含まれず（要確認）
+- DevTools Computed で `tokens.css` の変数参照を確認
+
+**所要時間**: 約 60 分（同セッション内）
+
+---
+
+### G017 — irodori フルボイス収録（57件） + フルボイス対応コード改修 ✅ 2026-04-30
+
+**収録方針の転換**:
+- 当初 SPEC.md L260 の「象徴的セリフのみ厳選」（≒effort voice 7種）を破棄
+- Izumi 指示で **フルボイス**（全バブルセリフ 1ファイル1セリフ・57件）に切替
+- VOICE_POOLS をテキストプールと 1:1 対応で再設計
+
+**セリフ整理（Izumi レビュー反映）**:
+- A. GREETING_1（4）、B. GREETING_2（4）、C. AFTER_FINISH（5）、D. ACCEPT（6）、E. REJECT（2）
+- F. START_1（7）、G. START_2（6）、I. KEEP（6 ★全面リライト）
+- J. AFTERGLOW_1（5）、K. RUSHED（2）、L. PATIENT（2）、M. AFTERGLOW_2（6）、N. PROMISE（2）
+- **H. PLAY_TAP は機能ごと撤去**（タップ反応バブル＋ボイス＋ tap-zone DOM/CSS）
+- 「ナカで／ナカに」表現を除去、「責任とってよ？」をかわいく差し替え
+
+**Irodori VoiceDesign 生成**:
+- 新規スクリプト [scripts/generate_gentle_gal_voices.py](D:/PlanetIP/irodori/scripts/generate_gentle_gal_voices.py)
+- 新規 manifest [data/gentle-gal-voice-manifest.json](D:/PlanetIP/irodori/data/gentle-gal-voice-manifest.json)（57行）
+- caption: 「20歳ギャル系の若い女性の声で、フランクで気だるげながら、優しく受容的なトーンで、語尾を伸ばし気味に、ややハスキー目に読み上げてください。」
+- 結果: 57/57 OK、0 失敗、約 32分（33.6s/件平均）
+- 出力: `assets/audio/voice/{category}/{id}.wav`（14サブフォルダ）
+
+**コード改修**:
+- [src/game/GentleGalCharacter.js](src/game/GentleGalCharacter.js) — `VOICE_FILES` flat → `VOICE_POOLS` 構造化（57件）
+- [src/scenes/WaitingScene.js](src/scenes/WaitingScene.js) — pickIdx + paired voice 再生（greet/accept/reject）
+- [src/scenes/ActionScene.js](src/scenes/ActionScene.js) — 行為ボイスループ撤去、start1/start2/keep に paired voice、tap-zone 関連削除
+- [src/scenes/FinishScene.js](src/scenes/FinishScene.js) — afterglow1/2/rushed/patient/promise に paired voice
+- [src/styles/main.css](src/styles/main.css) — accent 薄ブルー → オレンジ `#ffb74c`、`.action-tap-zone` 撤去
+- [index.html](index.html) — `<div id="action-tap-zone">` 削除
+
+**ブラウザ検証 (port 5175)**:
+- `--accent-solid` = `#ffb74c` ✓
+- `action-tap-zone` 要素不在 ✓
+- 新セリフ表示（greet1/s1-01 / greet2/s1-02 / accept/m0-01 / start1/m0-01 / start2/m0-01）✓
+- Vite 全 57 voice ファイル `200 OK` precache 成功 ✓
+- JS エラー 0 ✓
+
+**OPEN_QUESTIONS 解消**:
+- ✅ #5 irodori 収録セリフ完全リスト確定
+- アクセント色は heroine themeColor (gyaru-gentle = `#ffb74c` オレンジ) と整合
+
+**残タスク**:
+- 音声試聴での品質確認（ボイス自体のチェック）
+- 旧ダミー（`act-01-loop.wav` / `play-tap-*` / `wait-stage*` / `finish.wav` / `reject-locked.wav` 計10）は不参照、削除は別タスク
+
 ### G011 — Capacitor APK ビルド準備 + GitHub 初公開 ✅ 2026-04-30
 
 **GitHub リポジトリ初公開**:

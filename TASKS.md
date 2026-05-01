@@ -132,6 +132,7 @@
 - FIN-01/02/03 フィニッシュ画
 - easy 部門 ComfyUI I2V パイプライン経由
 
-### G017 — irodori ボイス収録
-- 象徴セリフリスト確定（OPEN_QUESTIONS）
-- ogg 書き出し
+### G017 ✅ — irodori ボイス収録（フルボイス57件）
+- フルボイス化（1ファイル1セリフ）+ コード改修一式
+- VoiceDesign caption でギャル属性表現
+- **DONE 2026-04-30**（DONE.md 参照）

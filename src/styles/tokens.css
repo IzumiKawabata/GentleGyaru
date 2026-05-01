@@ -1,0 +1,57 @@
+/* Gentle Gal — Design Tokens
+ * シリーズ全作で共有する CSS Custom Properties。
+ * Gentle-Friend / Gentle-Maid 等への横展開時は、この :root 内
+ * "character-specific override point" のブロック (--accent*) のみを
+ * キャラ themeColor に合わせて書き換えればテーマ置換完了。
+ *
+ * 参照: D:/PlanetIP/Gentle/Gentle-Gal/docs/DESIGN_SYSTEM.md
+ *      D:/PlanetIP/Gentle/SERIES.md
+ */
+
+:root {
+  /* ===== character-specific override point ===== */
+  /* Gentle Gal #1: gyaru-gentle → orange (#ffb74c) */
+  --accent: rgba(255, 183, 76, 0.55);
+  --accent-solid: #ffb74c;
+  --accent-text: #4a2c00;
+  --accent-border: rgba(255, 183, 76, 0.85);
+
+  /* ===== series-wide neutrals ===== */
+  --ink: #1a1a1a;
+  --ink-soft: rgba(26, 26, 26, 0.55);
+  --paper: #fafafa;
+  --paper-soft: #f0f0f0;
+  --line: rgba(26, 26, 26, 0.10);
+  /* alias: 既存コード互換のため残す。新規は --line を使う */
+  --hairline: var(--line);
+
+  /* ===== typography ===== */
+  --font-display: 'Inter', 'Zen Kaku Gothic New', 'Hiragino Sans', sans-serif;
+  --font-body: 'Inter', 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Color Emoji', sans-serif;
+  --font-emoji: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+
+  /* ===== type scale ===== */
+  --fs-xs: 0.74rem;
+  --fs-sm: 0.84rem;
+  --fs-md: 0.92rem;
+  --fs-lg: 1.1rem;
+  --fs-xl: 1.6rem;
+  --fs-2xl: 1.85rem;
+
+  /* ===== spacing ===== */
+  --sp-1: 0.25em;
+  --sp-2: 0.5em;
+  --sp-3: 0.75em;
+  --sp-4: 1em;
+
+  /* ===== radius ===== */
+  --r-sm: 0.5em;
+  --r-md: 1em;
+  --r-pill: 999px;
+
+  /* ===== motion ===== */
+  --ease-out: cubic-bezier(0.22, 0.9, 0.32, 1);
+  --dur-fast: 0.18s;
+  --dur-base: 0.4s;
+  --dur-slow: 0.9s;
+}

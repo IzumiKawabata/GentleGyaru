@@ -13,13 +13,17 @@
   <title>Gentle Gal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./src/styles/main.css" />
 </head>
 <body>
-  <!-- Splash: ふわっと「Gentle Gyaru」+ ローディングバー -->
+  <!-- Splash: 二段ミニマルロゴ + ローディングバー -->
   <div id="splash" class="splash">
-    <h1 class="splash-title">Gentle Gyaru</h1>
+    <div class="splash-logo" role="img" aria-label="Gentle Gyaru">
+      <div class="splash-logo__top">GENTLE</div>
+      <div class="splash-logo__rule" aria-hidden="true"></div>
+      <div class="splash-logo__bottom">gyaru</div>
+    </div>
     <div class="splash-bar"><div class="splash-bar__fill" id="splash-bar-fill"></div></div>
   </div>
 
@@ -28,22 +32,26 @@
 
     <!-- 愛情ゲージ: 左上に3個ハート（finish中は非表示） -->
     <div id="love-gauge" class="love-gauge" aria-label="愛情ゲージ">
-      <span class="love-gauge__heart" data-filled="false">💗</span>
-      <span class="love-gauge__heart" data-filled="false">💗</span>
-      <span class="love-gauge__heart" data-filled="false">💗</span>
+      <span class="love-gauge__heart emoji" data-filled="false" aria-hidden="true">💗</span>
+      <span class="love-gauge__heart emoji" data-filled="false" aria-hidden="true">💗</span>
+      <span class="love-gauge__heart emoji" data-filled="false" aria-hidden="true">💗</span>
     </div>
+
+    <!-- 右上: 音声 ON/OFF トグル -->
+    <button id="audio-toggle" class="audio-toggle" type="button" aria-label="音声 ON/OFF" data-muted="false">
+      <span class="audio-toggle__icon emoji" data-when="on" aria-hidden="true">🔊</span>
+      <span class="audio-toggle__icon emoji" data-when="off" aria-hidden="true">🔇</span>
+    </button>
 
     <!-- WaitingScene: 1つの bubble-track にキャラ発話 + 選択肢 + プレイヤー応答が積まれる -->
     <section id="waiting-scene" class="scene waiting-scene" hidden>
       <div class="full-stage" id="waiting-stage"></div>
       <div class="bubble-track" id="waiting-bubbles"></div>
-      <button class="reset-btn" id="reset-btn" type="button" aria-label="リセット">⟲</button>
     </section>
 
-    <!-- ActionScene: ループアニメ + Fire/Keep choice + play中バブル -->
+    <!-- ActionScene: ループアニメ + Fire/Keep choice -->
     <section id="action-scene" class="scene action-scene" hidden>
       <div class="full-stage" id="action-stage"></div>
-      <div class="action-tap-zone" id="action-tap-zone" aria-label="話しかける"></div>
       <div class="bubble-track bubble-track--action" id="action-bubbles"></div>
       <!-- プレイ開始時のゆっくり暗転（フィニッシュの深ブラックアウトの対称） -->
       <div class="action-blackout" id="action-blackout" data-active="true"></div>

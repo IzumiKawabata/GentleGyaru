@@ -47,6 +47,9 @@ export class App {
     // リセット
     this.bus.on('request:reset', () => this._reset());
 
+    // 音声 ON/OFF トグル（右上）
+    this._bindAudioToggle();
+
     this._gotoWaiting();
   }
 
@@ -90,6 +93,25 @@ export class App {
   _setRouteAttr() {
     const root = document.getElementById('app');
     if (root) root.dataset.route = this.route;
+  }
+
+  _bindAudioToggle() {
+    const btn = document.getElementById('audio-toggle');
+    if (!btn) return;
+    // 起動時の state.muted を反映
+    btn.dataset.muted = this.state.muted ? 'true' : 'false';
+    btn.addEventListener('click', () => {
+      const muted = !this.state.muted;
+      this.state.muted = muted;
+      this.audio?.setMuted(muted);
+      if (muted) {
+        // mute 時はループも止める
+        this.audio?.stopVoiceLoop();
+        this.audio?.stopBgm();
+      }
+      btn.dataset.muted = muted ? 'true' : 'false';
+      saveState(this.state);
+    });
   }
 
   _reset() {

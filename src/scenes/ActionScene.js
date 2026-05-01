@@ -1,117 +1,56 @@
 /**
  * ActionScene — 行為シーン（Fire/Keep choice 制）
  *
+ * Izumi 2026-05-01 改修:
+ *   - フルボイス（start1/start2/keep[0]/keep[1] すべて voice）
+ *   - voice-driven pacing（バブル/Fire prompt はボイス終了を待つ）
+ *   - タップで現在ステップ早送り（TapAdvancer）
+ *
  * - 選択メニューに応じたループアニメ表示（ACT-01/02/03）
- * - FIRE_PROMPT_MS 経過後に choice-group「🔥 Fire / Keep」を表示
+ * - プレイ中 ambient ループ voice（act-loop/m{0,1,2}）
+ * - 開始 voice → ② ボイス → Fire/Keep prompt
  * - Fire: フィニッシュ遷移
- * - Keep: 会話継続（キャラ反応バブル → 数秒後に再 prompt）
- * - キャラ画タップでも反応バブル（任意）
+ * - Keep: 2 行返し → 再 prompt
  */
 
-import { getActImage, BGM_FILES, SE_FILES, VOICE_FILES, PLAY_TAP_VOICES } from '../game/GentleGalCharacter.js';
+import { getActImage, BGM_FILES, SE_FILES, VOICE_POOLS } from '../game/GentleGalCharacter.js';
 import { hapticsBridge } from '../utils/hapticsBridge.js';
 import { ChatBubbles } from '../ui/ChatBubbles.js';
-import { renderLoveGauge } from '../ui/LoveGaugeUI.js';
+import { TapAdvancer } from '../utils/TapAdvancer.js';
 
 // 入場時のゆっくり暗転 → フェードアウト時間（CSS の transition と揃える）
-export const ACTION_BLACKOUT_FADE_MS = 1_600;
-// 開始セリフ ① 様子伺い、② 優しいひとこと（受容と優しさが芯のキャラ哲学）
-export const ACTION_START_BUBBLE_1_MS = 2_100;
-export const ACTION_START_BUBBLE_2_MS = 4_400;
-// Fire/Keep prompt はメッセージ駆動: 開始セリフ② が出てから N ms 後に表示
-export const FIRE_PROMPT_AFTER_BUBBLE2_MS = 1_800;
-// Keep 選んだ後の 3 言タイミング → 次の選択肢
-export const KEEP_REPLY_INTERVAL_MS = 1_500;
-export const KEEP_REPLY_FIRST_DELAY_MS = 280;
-export const KEEP_REPROMPT_AFTER_REPLIES_MS = 1_700; // 3言出し切ってから prompt
+// 2s（finish→home の deep-blackout 2s フェードと揃える）
+export const ACTION_BLACKOUT_FADE_MS = 2_000;
+// 開始セリフ前の暗転明け待ち（暗転 fade-out + 200ms 余韻）
+const ENTRY_PRE_BUBBLE_MS = 2_200;
+// バブル間のブレス
+const BUBBLE_BREATH_MS = 600;
+// Fire prompt 出現前の余韻（start2 ボイス終了から）
+const FIRE_PROMPT_GAP_MS = 1_200;
+// Keep 後の N 言タイミング
+const KEEP_REPLY_BREATH_MS = 600;
+const KEEP_REPROMPT_AFTER_REPLIES_MS = 1_200;
 
-const ACT_VOICE_LOOP = [
-  VOICE_FILES.ACT_01,
-  VOICE_FILES.ACT_02,
-  VOICE_FILES.ACT_03,
-];
-
-// 開始セリフ ① 様子伺い（メニュー別）
-// Gentle シリーズ哲学: 受容と優しさ。征服感ではなく、相手を気遣う・確認する
+// 開始セリフ ① 様子伺い（メニュー別、VOICE_POOLS.START1 と 1:1）
 const START_BUBBLES_1 = [
-  // ACT-01 手で
-  ['どう...かな？', '緊張してる？', '...大丈夫そう？'],
-  // ACT-02 口で
-  ['本当に、口でいいの？', '緊張してる？...わたしも、ちょっとね', '...こっち、見ててくれる？'],
-  // ACT-03 本番
-  ['ほんとに、いいの？', '怖くない...？', '...ちゃんと、こっち見ててね'],
+  ['力加減だいじょぶ？', 'どう...かな？', 'かちかちだね...'],
+  ['んっ…おっきい...', 'ちゃんと？...きもちいい？', 'リラックスしてね...'],
+  ['ん...やさしくね...'],
 ];
 
-// 開始セリフ ② 優しいひとこと（受容・気遣い）
-const START_BUBBLES_2 = [
-  // ACT-01
-  [
-    'いきたくなったら...いつでもいいからね',
-    '力加減、大丈夫かな？あんまり慣れてないからさ...',
-    '無理しないで、ゆっくりで',
-  ],
-  // ACT-02
-  [
-    '苦しかったら、すぐ言ってね？',
-    'ぜんぶ受け止めるから、安心して？',
-    '焦らなくていいよ。任せて',
-  ],
-  // ACT-03
-  [
-    '痛かったら、止めるからね？',
-    'いつでも止めていいから...無理しないで',
-    'ぜんぶ、受け止めるから...大丈夫だよ',
-  ],
+// 開始セリフ ② 受容ひとこと（固定 1 文 / メニュー、VOICE_POOLS.START2 と 1:1）
+const START_2_FIXED = [
+  'いきたくなったら...いつでもいいからね',
+  'いきそうになったら、そのまま出してね。',
+  'そのまま、きてっ',
 ];
 
-// play中タップ or Keep 選択でのキャラ反応（メニュー進行ごと）
-const PLAY_TAP_BUBBLES = [
-  ['もー、せっかちじゃん？', 'んっ...そこ?', 'ふふっ、いい感じ〜', 'あ、なに〜照れる'],
-  ['んっ...いいよ？', 'もっと、見て', 'はぁ...好きにしていいから', 'やっぱ最高じゃん...'],
-  ['もうダメ...', 'いって、いって', 'ん〜っ...！', '激しっ...好き...'],
-];
-
-// Keep 選んだ後に 3言ずつランダムに繰り出すフレーズプール（メニュー別）
-// 受容と優しさ哲学: 焦らせない、無理させない、ゆっくり
+// Keep 返し（メニュー別、固定順序、VOICE_POOLS.KEEP[m][0/1] と 1:1）
 const KEEP_REPLIES_POOL = [
-  // ACT-01 (手の余裕)
-  [
-    'まだ？...じゃ、もう少し',
-    'ふふっ、焦らないで',
-    'まだいける？',
-    '焦らなくていいよ、ね？',
-    'ゆっくりで、いいから',
-    'ぜんぜん、待ってあげる',
-    'いつでも、出していいよ',
-  ],
-  // ACT-02 (口の余裕)
-  [
-    'しょうがないな〜...もうちょい？',
-    'まだ余裕？すごっ',
-    'まだ我慢できるんだ',
-    'ふふっ、頑張るね',
-    'いいよ、もうちょい',
-    '焦らせないでね？',
-    'いつでも、口に出して',
-  ],
-  // ACT-03 (本番の余裕)
-  [
-    'まだ我慢できるんだ...偉いよ',
-    '待ってあげる、ね',
-    'いつでも、ナカで',
-    'もうちょい一緒に...',
-    '焦らないで、ぜんぶ受け止めるから',
-    'いいよ、好きなだけ',
-    'ね、こっち見て？',
-  ],
+  ['まだガチガチじゃん〜...どんだけ溜まってたの？', 'ね、もうちょい付き合って？'],
+  ['んっ...まだ硬いね', 'もうちょい...口で、いいよ？'],
+  ['ん...このまま、もっと...', 'もうちょっと、こうしてよ'],
 ];
-
-function pickThreeUnique(pool) {
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(3, shuffled.length));
-}
-
-const TAP_COOLDOWN_MS = 800;
 
 export class ActionScene {
   constructor({ bus, state, audio }) {
@@ -120,57 +59,43 @@ export class ActionScene {
     this.audio = audio;
     this.root = document.getElementById('action-scene');
     this.stage = document.getElementById('action-stage');
-    this.tapZone = document.getElementById('action-tap-zone');
     this.blackout = document.getElementById('action-blackout');
-    // 開始セリフ2本 + Fire/Keep prompt = 3 が見えるよう max=3
     this.bubbles = new ChatBubbles(document.getElementById('action-bubbles'), { max: 3 });
 
     this.currentMenuIndex = 0;
-    this.keepCount = 0;          // Fire するまでに Keep を選んだ回数（焦らしボーナスの根拠）
-    this._promptTimer = null;
-    this._startTimers = [];
-    this._keepReplyTimers = [];
-    this._currentPromptGroup = null;
-    this._bound = false;
-    this._tapBubbleIdx = 0;
+    this.keepCount = 0;
     this._start1Idx = [0, 0, 0];
-    this._start2Idx = [0, 0, 0];
-    this._lastTapAt = 0;
+    this._currentPromptGroup = null;
+    this._sequenceCancelled = false;
+
+    this._advancer = new TapAdvancer({
+      rootEl: this.root,
+      onSkip: () => this.audio?.stopVoice(),
+    });
   }
 
   show({ menuIndex = 0 } = {}) {
     if (!this.root) return;
     this.currentMenuIndex = menuIndex;
-    this.keepCount = 0;          // 入場時にリセット
+    this.keepCount = 0;
+    this._sequenceCancelled = false;
     this.root.hidden = false;
     requestAnimationFrame(() => { this.root.dataset.shown = 'true'; });
     this._renderStage(menuIndex);
-    this._cancelPromptTimer();
-    this._cancelStartTimers();
-    this._cancelKeepReplyTimers();
     this._currentPromptGroup = null;
-    this._bind();
     this.bubbles.clear();
-    this._tapBubbleIdx = 0;
 
-    // 行為 BGM へ切替 + 行為象徴ボイスループ開始
+    // 行為 BGM + ambient 喘ぎ声ループ
     this.audio?.startBgm(BGM_FILES.ACT);
-    this.audio?.startVoiceLoop(ACT_VOICE_LOOP[Math.max(0, Math.min(2, menuIndex))]);
+    const m = Math.max(0, Math.min(2, menuIndex));
+    this.audio?.startVoiceLoop(VOICE_POOLS.ACT_LOOP[m]);
 
-    // 入場時のゆっくり暗転フェードアウト（FinishScene の対称）
+    // 入場時のゆっくり暗転フェードアウト
     this._activateBlackout();
-    this._startTimers.push(setTimeout(() => this._fadeOutBlackout(), 50));
+    setTimeout(() => this._fadeOutBlackout(), 50);
 
-    // 暗転明け後に開始セリフ① 様子伺い → ② 優しいひとこと
-    // Fire/Keep prompt はセリフ②駆動（_showStartBubble2 内で発火）
-    this._startTimers.push(setTimeout(
-      () => this._showStartBubble1(menuIndex),
-      ACTION_START_BUBBLE_1_MS,
-    ));
-    this._startTimers.push(setTimeout(
-      () => this._showStartBubble2(menuIndex),
-      ACTION_START_BUBBLE_2_MS,
-    ));
+    this._advancer.bind();
+    this._runStartSequence(menuIndex);
   }
 
   hide() {
@@ -178,17 +103,15 @@ export class ActionScene {
       this.root.dataset.shown = 'false';
       this.root.hidden = true;
     }
-    this._cancelPromptTimer();
-    this._cancelStartTimers();
-    this._cancelKeepReplyTimers();
-    this._activateBlackout(); // 次回 show 時に再び暗転スタート
+    this._sequenceCancelled = true;
+    this._activateBlackout();
     this.audio?.stopVoiceLoop();
+    this._advancer.unbind();
     this.bubbles?.clear();
   }
 
-  _cancelKeepReplyTimers() {
-    for (const t of this._keepReplyTimers) clearTimeout(t);
-    this._keepReplyTimers = [];
+  _isAlive() {
+    return !this._sequenceCancelled && !this.root?.hidden;
   }
 
   _activateBlackout() {
@@ -199,48 +122,47 @@ export class ActionScene {
     if (this.blackout) this.blackout.dataset.active = 'false';
   }
 
-  _showStartBubble1(menuIndex) {
-    const pool = START_BUBBLES_1[Math.max(0, Math.min(2, menuIndex))];
-    const idx = this._start1Idx[menuIndex] % pool.length;
-    this._start1Idx[menuIndex]++;
-    this.bubbles.push('char', pool[idx]);
-  }
-
-  _showStartBubble2(menuIndex) {
-    const pool = START_BUBBLES_2[Math.max(0, Math.min(2, menuIndex))];
-    const idx = this._start2Idx[menuIndex] % pool.length;
-    this._start2Idx[menuIndex]++;
-    this.bubbles.push('char', pool[idx]);
-    // メッセージ駆動: セリフ② 表示完了から N ms 後に Fire/Keep prompt
-    this._scheduleFirePrompt(FIRE_PROMPT_AFTER_BUBBLE2_MS);
-  }
-
-  _cancelStartTimers() {
-    for (const t of this._startTimers) clearTimeout(t);
-    this._startTimers = [];
-  }
-
   _renderStage(menuIndex) {
     if (!this.stage) return;
-    const url = getActImage(menuIndex);
-    this.stage.style.backgroundImage = `url("${url}")`;
+    this.stage.style.backgroundImage = `url("${getActImage(menuIndex)}")`;
   }
 
-  _scheduleFirePrompt(delay) {
-    this._cancelPromptTimer();
-    this._promptTimer = setTimeout(() => this._showFirePrompt(), delay);
-  }
+  /**
+   * 開始シーケンス: 暗転明け → start1 → ブレス → start2 → ブレス → Fire/Keep prompt
+   */
+  async _runStartSequence(menuIndex) {
+    const m = Math.max(0, Math.min(2, menuIndex));
 
-  _cancelPromptTimer() {
-    if (this._promptTimer) {
-      clearTimeout(this._promptTimer);
-      this._promptTimer = null;
-    }
+    // 暗転明け待ち
+    await this._advancer.sleep(ENTRY_PRE_BUBBLE_MS);
+    if (!this._isAlive()) return;
+
+    // start1: ランダムプール
+    const pool1 = START_BUBBLES_1[m];
+    const voicePool1 = VOICE_POOLS.START1[m];
+    const idx1 = this._start1Idx[m] % pool1.length;
+    this._start1Idx[m]++;
+    this.bubbles.push('char', pool1[idx1]);
+    await this._advancer.step(this.audio?.playVoice(voicePool1[idx1]) ?? Promise.resolve());
+    if (!this._isAlive()) return;
+
+    // ブレス
+    await this._advancer.sleep(BUBBLE_BREATH_MS);
+    if (!this._isAlive()) return;
+
+    // start2: 固定 1 文 + voice
+    this.bubbles.push('char', START_2_FIXED[m]);
+    await this._advancer.step(this.audio?.playVoice(VOICE_POOLS.START2[m]) ?? Promise.resolve());
+    if (!this._isAlive()) return;
+
+    // Fire/Keep prompt
+    await this._advancer.sleep(FIRE_PROMPT_GAP_MS);
+    if (!this._isAlive()) return;
+    this._showFirePrompt();
   }
 
   _showFirePrompt() {
     if (this._currentPromptGroup) return;
-    this.audio?.playSe(SE_FILES.FIRE_APPEAR);
     if (typeof hapticsBridge?.tap === 'function') hapticsBridge.tap();
     this._currentPromptGroup = this.bubbles.pushChoices(
       [
@@ -252,54 +174,41 @@ export class ActionScene {
     );
   }
 
-  _onPromptPick(idx) {
+  async _onPromptPick(idx) {
     const group = this._currentPromptGroup;
     this._currentPromptGroup = null;
     this.bubbles.keepOnly(group, idx);
 
     if (idx === 0) {
-      // Fire
-      this._cancelPromptTimer();
-      this.audio?.playSe(SE_FILES.TAP);
-      this.audio?.stopVoiceLoop();
+      // Fire: splash.mp3 + finish 遷移
+      this.audio?.playSe(SE_FILES.SPLASH);
       if (typeof hapticsBridge?.fire === 'function') hapticsBridge.fire();
       this.bus.emit('request:finish');
     } else {
-      // Keep: keepCount++、3言を順次 → 出し切ったら再 prompt
+      // Keep: 2行返し（1文目 voice、2文目 voice）→ 再 prompt
       this.keepCount++;
-      this.audio?.playSe(SE_FILES.TAP);
-      this._cancelKeepReplyTimers();
-      const pool = KEEP_REPLIES_POOL[Math.max(0, Math.min(2, this.currentMenuIndex))];
-      const replies = pickThreeUnique(pool);
-      replies.forEach((text, i) => {
-        const delay = KEEP_REPLY_FIRST_DELAY_MS + i * KEEP_REPLY_INTERVAL_MS;
-        this._keepReplyTimers.push(setTimeout(() => this.bubbles.push('char', text), delay));
-      });
-      const lastReplyAt = KEEP_REPLY_FIRST_DELAY_MS + (replies.length - 1) * KEEP_REPLY_INTERVAL_MS;
-      this._scheduleFirePrompt(lastReplyAt + KEEP_REPROMPT_AFTER_REPLIES_MS);
+      const m = Math.max(0, Math.min(2, this.currentMenuIndex));
+      const pool = KEEP_REPLIES_POOL[m];
+      const voicePool = VOICE_POOLS.KEEP[m];
+
+      // 1文目: voice 終了待ち
+      await this._advancer.sleep(280);
+      if (!this._isAlive()) return;
+      this.bubbles.push('char', pool[0]);
+      await this._advancer.step(this.audio?.playVoice(voicePool[0]) ?? Promise.resolve());
+      if (!this._isAlive()) return;
+
+      await this._advancer.sleep(KEEP_REPLY_BREATH_MS);
+      if (!this._isAlive()) return;
+
+      // 2文目: voice 終了待ち
+      this.bubbles.push('char', pool[1]);
+      await this._advancer.step(this.audio?.playVoice(voicePool[1]) ?? Promise.resolve());
+      if (!this._isAlive()) return;
+
+      await this._advancer.sleep(KEEP_REPROMPT_AFTER_REPLIES_MS);
+      if (!this._isAlive()) return;
+      this._showFirePrompt();
     }
-  }
-
-  _bind() {
-    if (this._bound) return;
-    this._bound = true;
-    this.tapZone?.addEventListener('click', () => this._onPlayTap());
-  }
-
-  _onPlayTap() {
-    const now = Date.now();
-    if (now - this._lastTapAt < TAP_COOLDOWN_MS) return;
-    this._lastTapAt = now;
-
-    this.audio?.resume();
-    const voice = PLAY_TAP_VOICES[Math.floor(Math.random() * PLAY_TAP_VOICES.length)];
-    this.audio?.playVoice(voice);
-
-    const pool = PLAY_TAP_BUBBLES[Math.max(0, Math.min(2, this.currentMenuIndex))];
-    const text = pool[this._tapBubbleIdx % pool.length];
-    this._tapBubbleIdx++;
-    this.bubbles?.push('char', text);
-
-    if (typeof hapticsBridge?.tap === 'function') hapticsBridge.tap();
   }
 }

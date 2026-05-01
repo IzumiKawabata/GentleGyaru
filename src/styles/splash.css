@@ -1,0 +1,96 @@
+/* Gentle Gal — Splash
+ * 起動時のフェードイン。二段ミニマルロゴ + ローディングバー。
+ *
+ * Logo:
+ *   GENTLE   (Inter 200, 大文字, トラッキング広め)
+ *   ────     (細 hairline)
+ *   gyaru    (Inter 300, 小文字, 控えめ)
+ */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6em;
+  opacity: 0;
+  animation: splash-in var(--dur-slow) ease-out forwards;
+  transition: opacity var(--dur-slow) ease-in;
+  pointer-events: auto;
+}
+
+.splash[data-fade="out"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55em;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: splash-logo-in 1.4s 0.2s var(--ease-out) forwards;
+}
+
+.splash-logo__top {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.32em;
+  /* 末尾のtrackingで右側に余白ができるので、その分左に補正して視覚中央に揃える */
+  text-indent: 0.32em;
+  color: var(--ink);
+  line-height: 1;
+  margin: 0;
+}
+
+.splash-logo__rule {
+  width: 2.6em;
+  height: 1px;
+  background: rgba(26, 26, 26, 0.20);
+}
+
+.splash-logo__bottom {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: var(--fs-md);
+  letter-spacing: 0.18em;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+
+.splash-bar {
+  width: 56%;
+  max-width: 220px;
+  height: 1.5px;
+  background: rgba(26, 26, 26, 0.12);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0;
+  animation: splash-bar-in 0.8s 0.5s ease-out forwards;
+}
+
+.splash-bar__fill {
+  width: 0%;
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.32s var(--ease-out);
+}
+
+@keyframes splash-in {
+  to { opacity: 1; }
+}
+
+@keyframes splash-logo-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes splash-bar-in {
+  to { opacity: 1; }
+}

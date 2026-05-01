@@ -1,0 +1,64 @@
+/* Gentle Gal — Base
+ * リセット、html/body、.app シェル、loading-blackout。
+ */
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ゲームエリア: 高さは常に 100dvh フィット、幅は最大 9:16 比率まで。
+ * 横長画面 → width = 100dvh*9/16（中央配置、左右に paper 余白）
+ * 縦長画面（9:16より縦長）→ width = 100vw（縦比に収まる）
+ * 高さは常にフル、横幅だけが画面に応じて伸縮。 */
+.app {
+  position: relative;
+  height: 100dvh;
+  width: min(100vw, calc(100dvh * 9 / 16));
+  overflow: hidden;
+  background: var(--paper);
+  box-shadow: 0 4px 36px rgba(0, 0, 0, 0.22);
+}
+
+/* === Loading blackout === */
+.loading-blackout {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity var(--dur-base) ease;
+}
+
+/* 絵文字専用クラス: グリフだけ Noto Color Emoji を強制適用。
+ * Apple/Win/Android のシステム絵文字差異を吸収する。 */
+.emoji {
+  font-family: var(--font-emoji);
+  font-style: normal;
+  -webkit-font-feature-settings: "liga";
+  font-feature-settings: "liga";
+}

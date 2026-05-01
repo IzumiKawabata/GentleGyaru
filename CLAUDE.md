@@ -78,6 +78,19 @@ SmartDoll のコード基盤を流用するが、以下を**削除**:
 - **画像**: WebP（静止画・アニメーション両用）
 - **触覚**: Web Vibration API（hapticsBridge）
 - **パッケージング**: Capacitor（APK）/ electron-builder（PC）
+- **タイポグラフィ**: Inter（Latin/UI）+ Zen Kaku Gothic New（日本語）+ Noto Color Emoji（絵文字）
+- **デザイントークン**: `src/styles/tokens.css` の `--accent*` 4変数のみで全体テーマ置換可能（横展開対応）
+
+### CSS構成
+
+`src/styles/main.css` は @import エントリポイント。実体は以下に分割:
+
+```
+tokens.css → base.css → splash.css → layout.css → components.css → effects.css
+```
+
+詳細は [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md) を参照。
+シリーズ横展開時は `tokens.css` の冒頭4変数のみ書き換える（[../SERIES.md](../SERIES.md) の量産チェックリスト参照）。
 
 ## 状態管理スキーマ
 
@@ -131,5 +144,17 @@ npm run preview          # ビルド結果プレビュー（port 4174）
 
 ## v2 以降の検討
 
-- シリーズ#2（Gentle Maid）着手時に親 `Gentle/SERIES.md` を作成し共通仕様を抽出
+- シリーズ親仕様 `../SERIES.md` ✅（G018 で作成済み）。第3作以降はこの仕様＋ DESIGN_SYSTEM.md を踏襲
+
+## 横展開（Gentle-Friend / Maid / ...）
+
+第2作以降の量産は `../SERIES.md` の「量産チェックリスト」に従う。要点:
+
+1. `Gentle-Gal` をフォルダごとコピー
+2. 命名規則表（package / port / appId / localStorage / Heroine変数 / タスク番号prefix）に従って置換
+3. **`src/styles/tokens.css` 冒頭の `--accent*` 4変数のみ** をキャラ themeColor に書き換え
+4. ヒロイン素材（テキストプール / 画像 / 音声 / ロゴ下段の slug 文字列）差し替え
+5. PWA manifest（name / theme_color / icons）更新
+
+UI見た目をシリーズ全作で揃えるため、`--accent*` 以外のトークン（ink / paper / line / typography / spacing / radius / motion）は触らない。
 - 通知機能 / 季節変化 / 記憶機能などはシリーズ全体で検討
