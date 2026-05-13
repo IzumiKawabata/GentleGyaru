@@ -30,6 +30,11 @@ function isEncryptable(path) {
   return ENCRYPTED_EXTS.has(getExt(path));
 }
 
+function toAssetPath(path) {
+  const clean = path.replace(/^\/+/, '');
+  return clean.startsWith('assets/') ? clean : `assets/${clean}`;
+}
+
 function xorDecrypt(data, key) {
   const keyBytes = new TextEncoder().encode(key);
   const keyLen = keyBytes.length;
@@ -81,19 +86,20 @@ export function resolveAssetUrl(path) {
   if (!path || typeof path !== 'string') return '';
   if (/^(?:https?:|data:|blob:|\/\/)/.test(path)) return path;
   const clean = path.replace(/^\/+/, '');
+  const assetPath = toAssetPath(clean);
 
   if (import.meta.env.DEV) {
     // dev時: Vite dev server が assets/ をルートから配信
     try {
-      return new URL(`../../assets/${clean}`, import.meta.url).href;
+      return new URL(`../../${assetPath}`, import.meta.url).href;
     } catch {
       return '';
     }
   }
 
   // prod時: dist/ にコピー済みのアセットをbase相対パスで参照
-  const base = `./${clean}`;
-  if (ASSET_KEY && isEncryptable(clean)) return base + '.enc';
+  const base = `./${assetPath}`;
+  if (ASSET_KEY && isEncryptable(assetPath)) return base + '.enc';
   return base;
 }
 

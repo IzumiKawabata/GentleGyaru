@@ -85,7 +85,10 @@ export class WaitingScene {
     // タップで音声 + 待機を skip
     this._advancer = new TapAdvancer({
       rootEl: this.root,
-      onSkip: () => this.audio?.stopVoice(),
+      onSkip: () => {
+        this.audio?.resume();
+        this.audio?.stopVoice();
+      },
     });
     this._currentSequence = null;
   }
