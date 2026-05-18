@@ -63,7 +63,7 @@ export class ChatBubbles {
         btn.appendChild(num);
       }
 
-      if (item.icon) {
+      if (item.icon && item.label !== 'Fire') {
         const icon = document.createElement('span');
         icon.className = 'choice-lock emoji';
         icon.setAttribute('aria-hidden', 'true');
@@ -73,7 +73,7 @@ export class ChatBubbles {
 
       const label = document.createElement('span');
       label.className = 'choice-label';
-      label.textContent = item.label;
+      label.textContent = item.label === 'Fire' ? '発射' : item.label;
       btn.appendChild(label);
 
       btn.addEventListener('click', () => {
@@ -104,6 +104,7 @@ export class ChatBubbles {
         btn.classList.add('choice-bubble--vanish');
       } else {
         btn.dataset.chosen = 'true';
+        btn.classList.add('choice-bubble--chosen');
       }
     });
   }
@@ -117,7 +118,11 @@ export class ChatBubbles {
 
   _trim() {
     while (this.track.children.length > this.max) {
-      this.track.removeChild(this.track.firstChild);
+      const removable = Array.from(this.track.children).find((child) => (
+        !child.matches?.('.choice-group:not([data-spent="true"])')
+      ));
+      if (!removable) break;
+      this.track.removeChild(removable);
     }
   }
 }

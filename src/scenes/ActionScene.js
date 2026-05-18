@@ -20,16 +20,22 @@ import { TapAdvancer } from '../utils/TapAdvancer.js';
 
 // 入場時のゆっくり暗転 → フェードアウト時間（CSS の transition と揃える）
 // 2s（finish→home の deep-blackout 2s フェードと揃える）
-export const ACTION_BLACKOUT_FADE_MS = 2_000;
+export const ACTION_BLACKOUT_FADE_MS = 900;
 // 開始セリフ前の暗転明け待ち（暗転 fade-out + 200ms 余韻）
-const ENTRY_PRE_BUBBLE_MS = 2_200;
+const ENTRY_PRE_BUBBLE_MS = 900;
 // バブル間のブレス
-const BUBBLE_BREATH_MS = 600;
+const BUBBLE_BREATH_MS = 260;
 // Fire prompt 出現前の余韻（start2 ボイス終了から）
-const FIRE_PROMPT_GAP_MS = 1_200;
+const FIRE_PROMPT_GAP_MS = 420;
 // Keep 後の N 言タイミング
-const KEEP_REPLY_BREATH_MS = 600;
-const KEEP_REPROMPT_AFTER_REPLIES_MS = 1_200;
+const KEEP_REPLY_BREATH_MS = 260;
+const KEEP_REPROMPT_AFTER_REPLIES_MS = 520;
+const IDLE_CHATTER_MS = 5000;
+const IDLE_CHATTER_BUBBLES = [
+  'いけそう？',
+  'そのままで大丈夫だよ',
+  '待ってるね',
+];
 
 // 開始セリフ ① 様子伺い（メニュー別、VOICE_POOLS.START1 と 1:1）
 const START_BUBBLES_1 = [
@@ -67,6 +73,8 @@ export class ActionScene {
     this._start1Idx = [0, 0, 0];
     this._currentPromptGroup = null;
     this._sequenceCancelled = false;
+    this._idleTimer = null;
+    this._idleChatterIdx = 0;
 
     this._advancer = new TapAdvancer({
       rootEl: this.root,
@@ -82,6 +90,7 @@ export class ActionScene {
     this.currentMenuIndex = menuIndex;
     this.keepCount = 0;
     this._sequenceCancelled = false;
+    this._stopIdleChatter();
     this.root.hidden = false;
     requestAnimationFrame(() => { this.root.dataset.shown = 'true'; });
     this._renderStage(menuIndex);
@@ -107,6 +116,7 @@ export class ActionScene {
       this.root.hidden = true;
     }
     this._sequenceCancelled = true;
+    this._stopIdleChatter();
     this._activateBlackout();
     this.audio?.stopVoiceLoop();
     this._advancer.unbind();
@@ -170,16 +180,17 @@ export class ActionScene {
     this._currentPromptGroup = this.bubbles.pushChoices(
       [
         { label: 'Fire', icon: '🔥' },
-        { label: 'Keep' },
       ],
       (idx) => this._onPromptPick(idx),
       { variant: 'actions' },
     );
+    this._startIdleChatter();
   }
 
   async _onPromptPick(idx) {
     const group = this._currentPromptGroup;
     this._currentPromptGroup = null;
+    this._stopIdleChatter();
     this.bubbles.keepOnly(group, idx);
 
     if (idx === 0) {
@@ -195,7 +206,7 @@ export class ActionScene {
       const voicePool = VOICE_POOLS.KEEP[m];
 
       // 1文目: voice 終了待ち
-      await this._advancer.sleep(280);
+      await this._advancer.sleep(120);
       if (!this._isAlive()) return;
       this.bubbles.push('char', pool[0]);
       await this._advancer.step(this.audio?.playVoice(voicePool[0]) ?? Promise.resolve());
@@ -213,5 +224,24 @@ export class ActionScene {
       if (!this._isAlive()) return;
       this._showFirePrompt();
     }
+  }
+
+  _startIdleChatter() {
+    this._stopIdleChatter();
+    this._idleTimer = setInterval(() => {
+      if (!this._isAlive() || !this._currentPromptGroup) {
+        this._stopIdleChatter();
+        return;
+      }
+      const text = IDLE_CHATTER_BUBBLES[this._idleChatterIdx % IDLE_CHATTER_BUBBLES.length];
+      this._idleChatterIdx++;
+      this.bubbles.push('char', text);
+    }, IDLE_CHATTER_MS);
+  }
+
+  _stopIdleChatter() {
+    if (!this._idleTimer) return;
+    clearInterval(this._idleTimer);
+    this._idleTimer = null;
   }
 }

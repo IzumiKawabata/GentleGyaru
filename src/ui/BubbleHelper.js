@@ -21,10 +21,6 @@ export function createBubble(debugLabel = 'Sprite') {
   img.onerror = () => console.warn(`[${debugLabel}] img load failed: ${img.src}`);
   bubble.appendChild(img);
 
-  const tail = document.createElement('div');
-  tail.className = 'bot-bubble__tail';
-  bubble.appendChild(tail);
-
   const overlay = document.getElementById('bot-bubble-layer');
   if (overlay) overlay.appendChild(bubble);
 

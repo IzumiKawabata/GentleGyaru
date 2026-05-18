@@ -10,7 +10,7 @@
   background: #000;
   opacity: 1;
   pointer-events: none;
-  transition: opacity 2s ease-out;
+  transition: opacity 0.9s ease-out;
 }
 
 .action-blackout[data-active="false"] {
@@ -45,7 +45,7 @@
   background: #000;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 2s ease-in;
+  transition: opacity 1s ease-in;
 }
 
 .deep-blackout[data-active="true"] {

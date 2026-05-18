@@ -19,10 +19,10 @@ import { VOICE_POOLS } from '../game/GentleGalCharacter.js';
 import { ChatBubbles } from '../ui/ChatBubbles.js';
 import { TapAdvancer } from '../utils/TapAdvancer.js';
 
-export const FINISH_AFTERGLOW_DELAY_MS = 1600;
-export const FINISH_BREATH_MS          = 1200;
-export const FINISH_BLACKOUT_FADE_MS   = 2000;
-export const FINISH_HOLD_AFTER_BLACKOUT_MS = 800;
+export const FINISH_AFTERGLOW_DELAY_MS = 900;
+export const FINISH_BREATH_MS          = 420;
+export const FINISH_BLACKOUT_FADE_MS   = 1000;
+export const FINISH_HOLD_AFTER_BLACKOUT_MS = 350;
 
 // 余韻セリフ: 即座の反応（VOICE_POOLS.AFTERGLOW1 と 1:1）
 const AFTERGLOW_1_BUBBLES = [

@@ -21,14 +21,21 @@ import { renderLoveGauge } from '../ui/LoveGaugeUI.js';
 import { TapAdvancer } from '../utils/TapAdvancer.js';
 
 // 起動時の挨拶テンポ（voice 終了後のブレス＝呼吸間）
-const BREATH_BEFORE_GREET2_MS = 700;
-const BREATH_BEFORE_CHOICES_MS = 900;
+const BREATH_BEFORE_GREET2_MS = 320;
+const BREATH_BEFORE_CHOICES_MS = 360;
 // 初回起動時のみ追加遅延: スプラッシュ fade-out (1s) + シーン fade-in (1s) 待ち
-const INITIAL_LAUNCH_DELAY_MS = 1500;
+const INITIAL_LAUNCH_DELAY_MS = 650;
 // メニュー選択後の余韻（ACCEPT バブル/voice 完了後 → action 遷移）
-const POST_ACCEPT_BREATH_MS = 700;
+const POST_ACCEPT_BREATH_MS = 250;
 // reject バブル後 → 選択肢再表示
-const POST_REJECT_BREATH_MS = 1200;
+const POST_REJECT_BREATH_MS = 500;
+const IDLE_CHATTER_MS = 5000;
+const IDLE_CHATTER_BUBBLES = [
+  'まだ迷ってる？',
+  'ゆっくりでいいよ',
+  '待ってるね',
+  '焦らなくて大丈夫だよ',
+];
 
 // 本番選択時、loveGauge 不足での reject バブル（VOICE_POOLS.REJECT と 1:1）
 const MAIN_REJECT_BUBBLES = [
@@ -82,6 +89,8 @@ export class WaitingScene {
     this._transitioning = false;
     this._currentChoiceGroup = null;
     this._initialLaunch = true;
+    this._idleTimer = null;
+    this._idleChatterIdx = 0;
     // タップで音声 + 待機を skip
     this._advancer = new TapAdvancer({
       rootEl: this.root,
@@ -101,6 +110,7 @@ export class WaitingScene {
     this.bubbles.clear();
     this._transitioning = false;
     this._currentChoiceGroup = null;
+    this._stopIdleChatter();
     this._bind();
     this._advancer.bind();
     renderLoveGauge(this.state);
@@ -118,6 +128,7 @@ export class WaitingScene {
       this.root.hidden = true;
     }
     this._advancer.unbind();
+    this._stopIdleChatter();
   }
 
   /**
@@ -193,6 +204,7 @@ export class WaitingScene {
       (idx) => this._onChoiceTap(idx),
       { variant: 'actions' },
     );
+    this._startIdleChatter();
   }
 
   _bind() {
@@ -204,6 +216,7 @@ export class WaitingScene {
   _onChoiceTap(menuIndex) {
     if (this._transitioning) return;
     this.audio?.resume();
+    this._stopIdleChatter();
 
     if (menuIndex === 2 && !canDoMain(this.state)) {
       this._handleMainReject(menuIndex);
@@ -227,7 +240,7 @@ export class WaitingScene {
     this._acceptIdx[m]++;
 
     // 280ms の余白でプレイヤー選択の余韻 → ACCEPT バブル + voice
-    await this._advancer.sleep(280);
+    await this._advancer.sleep(120);
     this.bubbles.push('char', pool[idx]);
     await this._advancer.step(this.audio?.playVoice(voicePool[idx]) ?? Promise.resolve());
     await this._advancer.sleep(POST_ACCEPT_BREATH_MS);
@@ -240,6 +253,7 @@ export class WaitingScene {
    */
   async _handleMainReject(menuIndex) {
     this.bubbles.keepOnly(this._currentChoiceGroup, menuIndex);
+    this._currentChoiceGroup = null;
     recordMainReject(this.state);
     renderLoveGauge(this.state);
 
@@ -248,11 +262,30 @@ export class WaitingScene {
     const voice = VOICE_POOLS.REJECT[idx];
     this._rejectIdx++;
 
-    await this._advancer.sleep(320);
+    await this._advancer.sleep(140);
     this.bubbles.push('char', text);
     await this._advancer.step(this.audio?.playVoice(voice) ?? Promise.resolve());
     await this._advancer.sleep(POST_REJECT_BREATH_MS);
 
     this._renderChoices();
+  }
+
+  _startIdleChatter() {
+    this._stopIdleChatter();
+    this._idleTimer = setInterval(() => {
+      if (!this._isAlive() || !this._currentChoiceGroup) {
+        this._stopIdleChatter();
+        return;
+      }
+      const text = IDLE_CHATTER_BUBBLES[this._idleChatterIdx % IDLE_CHATTER_BUBBLES.length];
+      this._idleChatterIdx++;
+      this.bubbles.push('char', text);
+    }, IDLE_CHATTER_MS);
+  }
+
+  _stopIdleChatter() {
+    if (!this._idleTimer) return;
+    clearInterval(this._idleTimer);
+    this._idleTimer = null;
   }
 }

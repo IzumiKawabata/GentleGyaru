@@ -7,16 +7,17 @@
 .chat-bubble {
   max-width: 76%;
   padding: 0.5em 0.9em;
-  border-radius: var(--r-md);
+  border-radius: 1.35em;
   font-size: var(--fs-md);
   line-height: 1.55;
   letter-spacing: 0.02em;
   opacity: 0;
-  transform: translateY(14px) scale(0.96);
-  filter: blur(4px);
-  animation: bubble-in 0.62s var(--ease-out) forwards;
+  transform: translateY(8px) scale(0.98);
+  filter: blur(2px);
+  animation: bubble-in 0.32s var(--ease-out) forwards;
   pointer-events: auto;
   color: var(--ink);
+  overflow-wrap: anywhere;
   backdrop-filter: blur(10px) saturate(140%);
   -webkit-backdrop-filter: blur(10px) saturate(140%);
 }
@@ -25,14 +26,12 @@
   align-self: flex-start;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid var(--line);
-  border-bottom-left-radius: 0.25em;
 }
 
 .chat-bubble--player {
   align-self: flex-end;
   background: rgba(169, 200, 230, 0.42);
   color: var(--accent-text);
-  border-bottom-right-radius: 0.25em;
   font-weight: 500;
   border: 1px solid rgba(169, 200, 230, 0.65);
 }
@@ -40,8 +39,8 @@
 @keyframes bubble-in {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.96);
-    filter: blur(4px);
+    transform: translateY(8px) scale(0.98);
+    filter: blur(2px);
   }
   60% {
     opacity: 1;
@@ -63,9 +62,9 @@
   gap: 0.45em;
   max-width: 92%;
   opacity: 0;
-  transform: translateY(14px) scale(0.96);
-  filter: blur(4px);
-  animation: bubble-in 0.62s var(--ease-out) forwards;
+  transform: translateY(8px) scale(0.98);
+  filter: blur(2px);
+  animation: bubble-in 0.28s var(--ease-out) forwards;
   pointer-events: auto;
 }
 
@@ -73,6 +72,10 @@
   pointer-events: none;
   /* vanish 後の gap を消して、選ばれた1つを右端に詰める */
   gap: 0;
+  align-self: flex-end;
+  justify-content: flex-end;
+  width: max-content;
+  margin-left: auto;
 }
 
 /* === 選択肢ボタン（compact / flat / minimal） === */
@@ -93,8 +96,8 @@
   cursor: pointer;
   transition: transform 0.12s ease, background var(--dur-fast) ease,
               color var(--dur-fast) ease, border-color var(--dur-fast) ease,
-              opacity 0.45s ease, max-height 0.45s ease, padding 0.45s ease,
-              margin 0.45s ease, border-width 0.45s ease;
+              opacity 0.24s ease, max-height 0.24s ease, padding 0.24s ease,
+              margin 0.24s ease, border-width 0.24s ease;
   text-align: left;
   backdrop-filter: blur(6px) saturate(140%);
   -webkit-backdrop-filter: blur(6px) saturate(140%);
